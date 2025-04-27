@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Knowledge Navigator</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Modern Full-Page Layout */
+        body {
+            margin: 0;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            background: #f8f9fa;
+            font-family: 'Segoe UI', system-ui;
+        }
+        .node {  
+            cursor: pointer;
+            stroke-width: 1.5px;
+            transition: all 0.2s;
+        }
+        /* Definition Popup */
+        .definition-popup {
+            position: absolute;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+            max-width: 300px;
+            z-index: 100;
+        }
+
+        .toolbar {
+            padding: 1rem;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #graph-container {
+            width: 100vw;  
+            height: 100%;  /* Full available height */
+            position: relative;
+            overflow: hidden;  
+        }
+
+        .concept-node {
+            fill: url(#concept-gradient);
+            stroke: #2c3e50;
+        }
+
+        .mind-node {
+            fill: url(#mind-gradient);
+            stroke: #219653;
+        }
+
+        .node-label {
+            font-size: 12px;
+            fill: #2c3e50;
+            font-weight: 600;
+            pointer-events: none;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .link {
+            stroke: #7f8c8d;
+            stroke-opacity: 0.4;
+            stroke-width: 1.2px;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 400px;
+            padding: 0.6rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .view-btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 20px;
+            border: 1px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #357abd;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="view-toggle">
+            <button class="view-btn active" onclick="changeView('concept')">Concept Map</button>
+            <button class="view-btn" onclick="changeView('mind')">Mind Map</button>
+        </div>
+        <input type="text" id="search" class="search-box" placeholder="Search concepts...">
+        <button onclick="resetView()" class="btn">Reset View</button>
+    </div>
+    <div id="graph-container"></div>
+    <div id="definition-popup" class="definition-popup"></div>
+
+    <script>
+        // Visualization Configurations
+        const layouts = {
+            concept: {
+                charge: -120,
+                distance: 180,
+                collide: 25,
+                force: () => d3.forceManyBody().strength(-120)
+            },
+            mind: {
+                charge: -60,
+                distance: d => 100 + (d.strength * 40),
+                collide: 40,
+                force: () => d3.forceRadial(
+                    d => 200 * (1 - d.importance), 
+                    width/2, 
+                    height/2
+                )
+            }
+        };
+
+        // Global variables
+        let currentView = 'concept';
+        let width, height, svg, g, simulation;
+        const config = {
+            nodeRadius: 15,
+            fontSize: 13,
+            maxZoom: 8,
+            minZoom: 0.1
+        };
+
+        // Initialize visualization
+        function init() {
+            const container = d3.select("#graph-container");
+            width = container.node().offsetWidth;
+            height = container.node().offsetHeight;
+
+            svg = container.append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .call(d3.zoom().on("zoom", zoomed));
+
+            g = svg.append("g");
+            createGradients();
+            initializeGraph({{ graph_data|tojson }});
+        }
+
+        function showDefinition(event, d) {
+            const popup = d3.select("#definition-popup");
+            popup.style("left", `${event.pageX + 15}px`)
+                 .style("top", `${event.pageY + 15}px`)
+                 .style("display", "block")
+                 .html(`<h3>${d.id}</h3>${d.definition}`);
+        }
+
+        function createGradients() {
+            const gradients = [
+                { id: 'concept-gradient', colors: ['#4a90e2', '#357abd'] },
+                { id: 'mind-gradient', colors: ['#27ae60', '#219653'] }
+            ];
+
+            gradients.forEach(({id, colors}) => {
+                const gradient = svg.append("defs").append("radialGradient")
+                    .attr("id", id)
+                    .attr("cx", "40%")
+                    .attr("cy", "40%")
+                    .attr("r", "70%");
+                gradient.append("stop").attr("offset", "0%").attr("stop-color", colors[0]);
+                gradient.append("stop").attr("offset", "100%").attr("stop-color", colors[1]);
+            });
+        }
+
+        function initializeGraph(data) {
+            // Create links
+            const link = g.append("g")
+                .selectAll(".link")
+                .data(data.links)
+                .enter().append("line")
+                .attr("class", "link")
+                .attr("stroke-width", d => Math.sqrt(d.strength));
+
+            // Create nodes
+            const node = g.append("g")
+                .selectAll(".node")
+                .data(data.nodes)
+                .enter().append("circle")
+                .attr("class", `node ${currentView}-node`) 
+                .attr("r", d => 10 + (d.importance * 25))
+                .call(drag(simulation))
+                .on("mouseover", nodeMouseOver)
+                .on("mouseout", nodeMouseOut)
+                .on("click", showDefinition);
+
+            // Create labels
+            const label = g.append("g")
+                .selectAll(".node-label")
+                .data(data.nodes)
+                .enter().append("text")
+                .attr("class", "node-label")
+                .text(d => d.id)
+                .attr("dx", 20)
+                .attr("dy", "0.35em");
+
+            // Initialize simulation
+            simulation = d3.forceSimulation()
+                .force("link", d3.forceLink()
+                    .id(d => d.id)
+                    .distance(layouts[currentView].distance)
+                )
+                .force("charge", layouts[currentView].force())
+                .force("center", d3.forceCenter(width/2, height/2))
+                .force("collide", d3.forceCollide(layouts[currentView].collide));
+
+            simulation.nodes(data.nodes)
+                .on("tick", () => ticked(link, node, label));
+
+            simulation.force("link").links(data.links);
+
+            // Initial layout stabilization
+            setTimeout(() => simulation.alphaTarget(0).restart(), 3000);
+        }
+
+        function ticked(link, node, label) {
+            link.attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node.attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            label.attr("x", d => d.x)
+                .attr("y", d => d.y);
+        }
+
+        function changeView(viewType) {
+            currentView = viewType;
+            
+            // Update button states
+            d3.selectAll(".view-btn")
+                .classed("active", false);
+            d3.select(`button[onclick="changeView('${viewType}')"]`)
+                .classed("active", true);
+
+            // Update node styles
+            g.selectAll(".node")
+                .attr("class", `node ${viewType}-node`);
+
+            // Update simulation forces
+            simulation.force("charge", layouts[viewType].force())
+                .force("link", d3.forceLink()
+                    .distance(layouts[viewType].distance)
+                )
+                .force("collide", d3.forceCollide(layouts[viewType].collide))
+                .alpha(1).restart();
+        }
+
+        // Interaction functions
+        function drag(simulation) {
+            function dragstarted(event) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+            }
+
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
+
+            function dragended(event) {
+                if (!event.active) simulation.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
+
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+
+        function nodeMouseOver(event, d) {
+            d3.select(event.currentTarget)
+                .transition()
+                .duration(200)
+                .attr("r", config.nodeRadius * 1.4);
+        }
+
+        function nodeMouseOut(event, d) {
+            d3.select(event.currentTarget)
+                .transition()
+                .duration(200)
+                .attr("r", 10 + (d.importance * 25));
+        }
+
+        function zoomed(event) {
+            g.attr("transform", event.transform);
+        }
+
+        function resetView() {
+            g.transition()
+                .duration(750)
+                .attr("transform", d3.zoomIdentity);
+            
+            simulation.alpha(1).restart();
+            simulation.force("center", d3.forceCenter(width/2, height/2));
+        }
+
+        // Window resize handler
+        window.addEventListener("resize", () => {
+            const container = d3.select("#graph-container");
+            width = container.node().offsetWidth;
+            height = container.node().offsetHeight;
+            
+            svg.attr("width", width)
+               .attr("height", height);
+            
+            simulation.force("center", d3.forceCenter(width/2, height/2));
+            simulation.alpha(1).restart();
+        });
+
+        // Search functionality
+        document.getElementById("search").addEventListener("input", function(e) {
+            const term = e.target.value.toLowerCase();
+            g.selectAll(".node, .node-label")
+                .style("opacity", d => d.id.toLowerCase().includes(term) ? 1 : 0.1);
+        });
+
+        document.addEventListener("click", (e) => {
+            const clickedNode = e.target.closest('.node');  // Now using .node class
+            const clickedPopup = e.target.closest('#definition-popup');
+            
+            if (!clickedNode && !clickedPopup) {
+                d3.select("#definition-popup").style("display", "none");
+            }
+        });
+
+        // Initialize application
+        init();
+    </script>
+    
+</body>
+</html>

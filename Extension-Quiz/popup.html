@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YouTube Quiz Generator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 360px;
+      padding: 20px;
+      font-family: 'Poppins', sans-serif;
+      background: #f4f4f9;
+      color: #333;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .app-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #444;
+    }
+
+    .api-section {
+      display: none;
+      padding: 16px;
+      background: #f9f9ff;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .api-section.show {
+      display: block;
+    }
+
+    .input-group {
+      margin-bottom: 12px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #6c5ce7;
+      box-shadow: 0 0 4px rgba(108, 92, 231, 0.2);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #generate-quiz {
+      background: #6c5ce7;
+      color: white;
+    }
+
+    #generate-quiz:hover {
+      background: #5a4acc;
+    }
+
+    #save-key {
+      background: #00cec9;
+      color: white;
+    }
+
+    #save-key:hover {
+      background: #00b8b0;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .loading.active {
+      display: block;
+    }
+
+    .quiz-container {
+      margin-top: 16px;
+    }
+
+    .question {
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e0e0e0;
+    }
+
+    .question p {
+      margin-bottom: 12px;
+      color: #444;
+    }
+
+    .options label {
+      display: block;
+      padding: 10px;
+      margin: 6px 0;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      background: #fafafa;
+      transition: 0.2s;
+    }
+
+    .options label:hover {
+      background: #e3e3e3;
+      border-color: #6c5ce7;
+    }
+
+    .results {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+
+    .results h3 {
+      color: #444;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="app-header">
+      <h1 class="app-title">YouTube Quiz Generator</h1>
+    </div>
+    <div class="api-section" id="api-section">
+      <div class="input-group">
+        <label for="api-key">Gemini API Key</label>
+        <input type="text" id="api-key" placeholder="Enter your API key">
+      </div>
+      <button id="save-key">Save API Key</button>
+    </div>
+    <button id="generate-quiz">Generate Quiz</button>
+    <div id="loading" class="loading">Generating quiz...</div>
+    <div id="quiz-container" class="quiz-container"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

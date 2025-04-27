@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% set learning_style = progress.learning_style|default({'visual':0, 'verbal':0}) %}
+{% set pattern_analysis = pattern_analysis|default('Complete more lessons to unlock personalized insights') %}
+
+{% block content %}
+<div class="container">
+    <h2 class="my-4">Your Learning Dashboard</h2>
+    
+    <!-- Progress Overview Cards -->
+    <div class="row mb-4 g-4">
+        <div class="col-md-4">
+            <div class="card text-center bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5>Mastered Videos</h5>
+                    <div class="display-4">{{ mastered_count }}</div>
+                    <small>Great job!</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-success text-white h-100">
+                <div class="card-body">
+                    <h5>Current Streak</h5>
+                    <div class="display-4">{{ streak_days }} days</div>
+                    <small>Keep it going!</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Replace the entire "Preferred Format" card with: -->
+        <div class="col-md-4">
+            <div class="card text-center bg-info text-white h-100">
+                <div class="card-body">
+                    <h5>Preferred Format</h5>
+                    <div class="display-4 my-2">
+                        {% if feature_preference.dominant == 'balanced' %}
+                            Balanced
+                        {% elif feature_preference.dominant %}
+                            {{ feature_preference.dominant|capitalize }}
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </div>
+                    <small>
+                        {% if feature_preference.dominant %}
+                            Learning Style
+                        {% else %}
+                            No data yet
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+    <!-- Memory Retention Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4>Memory Retention Analytics</h4>
+            <span class="badge bg-secondary">Personalized Forgetting Curve</span>
+        </div>
+        <div class="card-body">
+            {% if not retention_metrics %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Complete at least 2 quizzes to unlock retention analytics
+            </div>
+            {% else %}
+            <!-- Compact Chart Section -->
+            <div class="row mb-3">
+                <div class="col-12" style="height: 200px;">  <!-- Fixed height container -->
+                    <canvas id="personalizedCurve" style="height: 100%; width: 100%"></canvas>
+                </div>
+            </div>
+        </div>    
+
+
+            <!-- Metrics -->
+            <div class="row g-2 mb-4">
+                <div class="col-6">
+                    <div class="metric-box p-2">
+                        <div class="metric-value">
+                            {{ "%.1f"|format(retention_metrics.estimated_retention) }}%
+                        </div>
+                        <div class="metric-label small">Current Retention</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="metric-box p-2">
+                        <div class="metric-value">
+                            {{ retention_metrics.optimal_review_days|round(1) }}
+                        </div>
+                        <div class="metric-label small">Optimal Review Days</div>
+                    </div>
+                </div>
+                
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- Recent Activity -->
+    <div class="card">
+        <div class="card-header">
+            <h4>Recent Learning</h4>
+        </div>
+        <div class="card-body">
+            {% if video_progress[-3:] %}
+            <div class="row">
+                {% for video in video_progress[-3:] %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        {% if video.video_id %}
+                        <img src="https://img.youtube.com/vi/{{ video.video_id }}/mqdefault.jpg" 
+                            class="card-img-top" alt="{{ video.video_title }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <h6 class="card-title">{{ video.video_title }}</h6>
+                            <div class="d-flex justify-content-between">
+                                <span class="badge bg-{{ 'success' if video.aggregates.mastery_level == 'mastered' else 'warning' }}">
+                                    {{ video.aggregates.mastery_level|title }}
+                                </span>
+                                <small class="text-muted">
+                                    {% if video.attempts and video.attempts|length > 0 %}
+                                        {{ video.attempts[-1].timestamp|format_date }}
+                                    {% else %}
+                                        No attempts yet
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No recent activity yet. Complete a quiz to get started!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-5 pt-4 border-top border-opacity-25" style="border-color: var(--bs-border-color) !important;">
+        <div class="text-center mx-auto" style="max-width: 800px;">
+            <i class="bi bi-book text-primary fs-4 me-2"></i>
+            <span class="fst-italic text-body-emphasis fs-5">
+                "The beautiful thing about learning is that no one can take it away from you."
+            </span>
+            <div class="mt-2 text-body-tertiary">– B.B. King</div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if retention_metrics %}
+        const ctx = document.getElementById('personalizedCurve').getContext('2d');
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ retention_metrics.curve_data.labels|tojson }},
+                datasets: [{
+                    label: 'Your Actual Retention',
+                    data: {{ retention_metrics.curve_data.actual|tojson }},
+                    borderColor: '#1cc88a',
+                    backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                    tension: 0.3,  // Reduced curve tension
+                    borderWidth: 2,
+                    pointRadius: 3,  // Smaller points
+                    pointHoverRadius: 5
+                },
+                {
+                    label: 'Predicted Retention',
+                    data: {{ retention_metrics.curve_data.predicted|tojson }},
+                    borderColor: '#4e73df',
+                    borderDash: [3, 3],  // Shorter dashes
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    tension: 0.3,  // Reduced curve tension
+                    borderWidth: 2,
+                    pointRadius: 3,  // Smaller points
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 10,  // Reduced padding
+                            boxWidth: 12,
+                            font: {
+                                size: 12  // Smaller font
+                            }
+                        }
+                    },
+                    tooltip: {
+                        bodyFont: {
+                            size: 12  // Smaller tooltip text
+                        },
+                        padding: 8,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            callback: (value) => `${value}%`,
+                            stepSize: 20  // Fixed steps for cleaner grid
+                        },
+                        title: {
+                            font: {
+                                size: 12
+                            },
+                            padding: 8
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            maxRotation: 0  // Prevent label rotation
+                        },
+                        title: {
+                            font: {
+                                size: 12
+                            },
+                            padding: 8
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 15,
+                        left: 15,
+                        right: 15
+                    }
+                }
+            }
+        });
+        {% endif %}
+        
+        // Initialize tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => 
+            new bootstrap.Tooltip(tooltipTriggerEl)
+        );
+    });
+
+    </script>
+
+<style>
+    .card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    
+    .metric-box {
+        background: rgba(0,0,0,0.03);
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .metric-value {
+        font-size: 1.4rem;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+    
+    .metric-label {
+        color: #666;
+        font-size: 0.85em;
+    }
+    
+    .review-card {
+        width: 160px;
+        min-width: 160px;
+    }
+    
+    .concept-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .display-4 {
+        font-size: 2.5rem;
+        font-weight: 600;
+    }
+    
+    .bi-book {
+        transition: transform 0.3s ease;
+    }
+    
+    .bi-book:hover {
+        transform: translateY(-3px);
+        color: var(--bs-primary-text-emphasis) !important;
+    }
+    .overflow-x-auto {
+        scrollbar-width: thin;
+        scrollbar-color: var(--bs-primary) transparent;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-thumb {
+        background-color: var(--bs-primary);
+        border-radius: 4px;
+    }
+    
+    .overflow-x-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .review-card {
+        width: 160px;
+        min-width: 160px;
+        margin-right: 0.75rem; 
+    }
+</style>
+{% endblock %}

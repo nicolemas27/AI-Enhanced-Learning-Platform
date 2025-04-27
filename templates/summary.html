@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Video Breakdown | LearnTube{% endblock %}
+
+{% block styles %}
+{{ super() }}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #6366f1;
+            --text: #1e293b;
+            --accent: #e0e7ff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            line-height: 1.6;
+        }
+
+        .summary-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2.5rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 12px 24px -6px rgba(0,0,0,0.05);
+        }
+
+        .main-heading {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, #4f46e5 30%, #6366f1 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            letter-spacing: -0.025em;
+        }
+
+        .nutshell-section {
+            background: var(--accent);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nutshell-section::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(var(--primary), var(--secondary));
+        }
+
+        .nutshell-heading {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .nutshell-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .nutshell-content {
+            font-size: 1.1rem;
+            color: var(--text);
+            line-height: 1.8;
+            padding-left: 56px;
+        }
+
+        .key-points-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            margin: 3rem 0;
+        }
+
+        .key-point {
+            padding: 1.75rem;
+            border-radius: 12px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .key-point:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(79, 70, 229, 0.1);
+            border-color: var(--primary);
+        }
+
+        .key-point-number {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(var(--primary), var(--secondary));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .key-point-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+
+        .key-point-text {
+            color: #475569;
+            line-height: 1.7;
+        }
+
+        .print-btn {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.75rem 1.75rem;
+            border-radius: 8px;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+
+        .print-btn:hover {
+            transform: scale(1.05);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .summary-container {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+            
+            .main-heading {
+                font-size: 2rem;
+            }
+            
+            .nutshell-content {
+                padding-left: 0;
+            }
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="summary-container">
+        <h1 class="main-heading" data-translate="summary_title">Knowledge Unpacked 🧠</h1>
+
+        <div class="nutshell-section">
+            <div class="nutshell-heading">
+                <div class="nutshell-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                </div>
+                <h2 class="h4" style="color: var(--text); margin: 0" data-translate="core_insights">Core Insights</h2>
+            </div>
+            <p class="nutshell-content" data-translate="summary_overview">
+                {{ summary.overview|safe }}
+            </p>
+        </div>
+        
+        <div class="key-points-grid">
+            {% for point in summary.key_points %}
+            <div class="key-point">
+                <div class="key-point-number">{{ loop.index }}</div>
+                <div class="key-point-content">
+                    {% if '**' in point %}
+                        {% set parts = point.split('**', 2) %}
+                        <h3 class="key-point-title" data-translate="key_point_{{ loop.index }}_title">{{ parts[1]|trim }}</h3>
+                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">{{ parts[2].split(':', 1)[1]|trim }}</p>
+                    {% else %}
+                        <h3 class="key-point-title" data-translate="key_point_{{ loop.index }}_title">Key Insight {{ loop.index }}</h3>
+                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">{{ point }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Add this new CSS -->
+        <style>
+            .key-point-content {
+                min-height: 140px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .key-point-title {
+                color: var(--primary);
+                font-size: 1.1rem;
+                margin-bottom: 0.5rem;
+                line-height: 1.4;
+            }
+
+            .key-point-text {
+                font-size: 0.95rem;
+                color: #475569;
+                line-height: 1.6;
+                margin-bottom: 0;
+            }
+
+            .key-point {
+                padding: 1.5rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+        </style>
+
+        <div class="text-center mt-5">
+            <button onclick="window.print()" class="print-btn" data-translate="save_pdf">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16">
+                    <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/>
+                    <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/>
+                </svg>
+                Save as PDF
+            </button>
+            <a href="/" class="btn btn-link text-secondary mt-3 d-block" data-translate="explore_more">
+                ← Explore More Content
+            </a>
+        </div>
+    </div>
+{% endblock %}

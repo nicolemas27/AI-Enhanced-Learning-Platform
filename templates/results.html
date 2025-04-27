@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #64748b;
+            --text: #1e293b;
+            --light-bg: #f8fafc;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --correct-color: #10b981;
+            --incorrect-color: #ef4444;
+            --nav-bg: rgba(255, 255, 255, 0.85);
+        }
+
+        [data-theme="dark"] {
+            --nav-bg: rgba(15, 23, 42, 0.85);
+            --body-bg: #0f172a;
+            --body-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --primary: #818cf8;
+            --primary-hover: #6366f1;
+            --secondary: #94a3b8;
+            --text: #f1f5f9;
+            --light-bg: #1e293b;
+            --border: #334155;
+            --correct-color: #10b981;
+            --incorrect-color: #ef4444;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--text);
+            background-color: var(--light-bg);
+            margin-top: 80px;
+            transition: var(--transition);
+            line-height: 1.6;
+        }
+
+        /* Navbar - Fixed and Working */
+        .site-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 2.5rem;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1.5rem;
+            z-index: 1000;
+            background-color: var(--nav-bg);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-md);
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .progress-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.6rem 1rem;
+            border-radius: var(--radius);
+            transition: var(--transition);
+            margin-right: auto;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .auth-links {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        /* Score Header */
+        .score-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Beautiful Question Options */
+        .option-container {
+            margin: 1rem 0;
+        }
+
+        .option-card {
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .option-card.correct {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--correct-color);
+        }
+
+        .option-card.incorrect {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--incorrect-color);
+        }
+
+        .option-letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+
+        /* Enhanced Resource Cards */
+        .resource-card {
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            border: 1px solid var(--border);
+            background-color: white;
+        }
+
+        [data-theme="dark"] .resource-card {
+            background-color: #1e293b;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .resource-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: white;
+        }
+
+        .youtube-icon {
+            background-color: #FF0000;
+        }
+
+        .scholar-icon {
+            background-color: #4285F4;
+        }
+
+        .coursera-icon {
+            background-color: #0056D2;
+        }
+
+        .khan-icon {
+            background-color: #14BF96;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar with Working Translations -->
+    <header class="site-header">
+        <a href="{{ url_for('progress_dashboard') }}" class="progress-link">
+            <i class="fas fa-chart-line"></i>
+            <span data-translate="progress">Progress</span>
+        </a>
+
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span class="user-email">{{ current_user.email }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-primary">
+                    <span data-translate="logout">Logout</span>
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">
+                    <span data-translate="login">Login</span>
+                </a>
+                <a href="{{ url_for('auth.signup') }}" class="btn btn-sm btn-primary">
+                    <span data-translate="signup">Sign Up</span>
+                </a>
+            {% endif %}
+        </div>
+
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+
+        <div class="language-switcher">
+            <select id="languageSelect" class="form-select border-0 shadow-sm">
+                <option value="en">🌐 English</option>
+                <option value="hi">🇮🇳 हिन्दी</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="mr">🇮🇳 मराठी</option>
+            </select>
+            <div class="spinner-border spinner-border-sm d-none" id="langSpinner"></div>
+        </div>
+    </header>
+
+    <main class="container py-4" style="max-width: 1200px;">
+        <!-- Score Header -->
+        <div class="score-header text-center">
+            <h1 class="display-4 mb-3 fw-bold" data-translate="quiz_results">Quiz Results</h1>
+            <div class="d-flex justify-content-center align-items-center mb-3">
+                <div class="score-badge" style="background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.3);">
+                    <span data-translate="score">Score</span>: {{ score }}/{{ total }} ({{ ((score/total)*100)|round(1) }}%)
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="row mb-5">
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h3 class="text-success">{{ score }}</h3>
+                        <p class="text-muted" data-translate="correct_answers">Correct Answers</p>
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-danger">
+                    <div class="card-body text-center">
+                        <h3 class="text-danger">{{ total - score }}</h3>
+                        <p class="text-muted" data-translate="incorrect_answers">Incorrect Answers</p>
+                        <i class="fas fa-times-circle fa-2x text-danger"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h3 class="text-primary">{{ ((score/total)*100)|round(1) }}%</h3>
+                        <p class="text-muted" data-translate="success_rate">Success Rate</p>
+                        <i class="fas fa-chart-line fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question Breakdown -->
+        <h2 class="mb-4 fw-bold" data-translate="question_breakdown">Question Breakdown</h2>
+        
+        {% for result in results %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="card-title mb-4" data-translate="question_{{ loop.index }}">Question {{ loop.index }}: {{ result.question }}</h3>
+                
+                <div class="option-container">
+                    {% for option in result.options %}
+                    <div class="option-card d-flex align-items-center {% if loop.index0 == result.correct %}correct{% endif %} {% if result.user_choice == loop.index0 and not result.is_correct %}incorrect{% endif %}">
+                        <span class="option-letter">{{ ['A', 'B', 'C', 'D'][loop.index0] }}</span>
+                        <div class="flex-grow-1">
+                            <span data-translate="option_{{ loop.index }}_{{ loop.index0 }}">{{ option }}</span>
+                        </div>
+                        {% if loop.index0 == result.correct %}
+                        <span class="badge bg-success ms-2">
+                            <i class="fas fa-check-circle"></i> <span data-translate="correct_answer">Correct</span>
+                        </span>
+                        {% endif %}
+                        {% if result.user_choice == loop.index0 and not result.is_correct %}
+                        <span class="badge bg-danger ms-2">
+                            <i class="fas fa-times-circle"></i> <span data-translate="your_answer">Yours</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="explanation mt-4">
+                    <h5 class="d-flex align-items-center">
+                        <i class="fas fa-lightbulb text-warning me-2"></i>
+                        <span data-translate="explanation">Explanation</span>
+                    </h5>
+                    <div class="alert alert-light">
+                        <p data-translate="explanation_{{ loop.index }}">{{ result.explanation }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="debug-info" style="display: none">
+            <p>Weak Concepts Exist: {{ progress.weak_concepts is not none }}</p>
+            <p>Weak Concepts Count: {{ progress.weak_concepts|length }}</p>
+            <p>Weak Concepts: {{ progress.weak_concepts }}</p>
+        </div>
+        <!-- Improved Recommendation Section -->
+        <div class="card border-0 mt-5 shadow-lg recommendation-card">
+            <div class="card-header bg-gradient-primary text-white d-flex align-items-center">
+                <div class="icon-shape bg-white bg-opacity-10 rounded-circle p-3 me-3">
+                    <i class="fas fa-lightbulb text-white"></i>
+                </div>
+                <h5 class="mb-0 fw-bold" data-translate="recommended_resources">Recommended Resources</h5>
+            </div>
+            <div class="card-body">
+                {% if (progress.weak_concepts is defined and progress.weak_concepts|length > 0) or session.get('weak_concepts') %}
+                <div class="alert alert-info recommendation-alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2 text-primary-alert"></i>
+                        <span data-translate="focus_areas" class="fw-medium alert-text">Based on your results, we recommend focusing on these areas:</span>
+                    </div>
+                    <div class="mt-3 d-flex flex-wrap gap-2">
+                        {% for concept in progress.weak_concepts[:3] %}
+                        <span class="badge bg-gradient-primary rounded-pill px-3 py-2 fw-normal concept-badge">
+                            <i class="fas fa-bolt me-1"></i> {{ concept }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="row row-cols-1 row-cols-md-2 g-4 mt-3">
+                    <!-- YouTube Card -->
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm resource-card youtube-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-shape bg-danger bg-opacity-10 text-danger rounded-circle p-3 me-3">
+                                        <i class="fab fa-youtube fa-lg"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold card-title-text">Video Tutorials</h5>
+                                </div>
+                                <p class="mb-4 card-body-text" data-translate="video_tutorials">Short video explanations of key concepts from top educators</p>
+                                <a href="https://www.youtube.com/results?search_query={{ progress.weak_concepts[0]|urlencode }}+tutorial" 
+                                   target="_blank" 
+                                   class="btn btn-danger btn-hover-grow w-100 rounded-pill py-2">
+                                   <i class="fab fa-youtube me-2"></i> Watch Now
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Coursera Card -->
+                    <div class="col">
+                        <div class="card h-100 border-0 shadow-sm resource-card coursera-card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3">
+                                        <i class="fas fa-graduation-cap fa-lg"></i>
+                                    </div>
+                                    <h5 class="mb-0 fw-bold card-title-text">Structured Courses</h5>
+                                </div>
+                                <p class="mb-4 card-body-text" data-translate="structured_courses">Certified courses from leading universities and companies</p>
+                                <a href="https://www.coursera.org/search?query={{ progress.weak_concepts[0]|urlencode }}" 
+                                   target="_blank" 
+                                   class="btn btn-primary btn-hover-grow w-100 rounded-pill py-2">
+                                   <i class="fas fa-graduation-cap me-2"></i> Explore Courses
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-success recommendation-success">
+                    <i class="fas fa-check-circle me-3 success-icon"></i>
+                    <div>
+                        <h5 class="fw-bold mb-1 success-title">Well done!</h5>
+                        <p class="mb-0 success-text" data-translate="no_weak_areas">You're performing strongly across all areas. Keep up the great work!</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <style>
+            /* Base Styles */
+            .recommendation-card {
+                border-radius: 20px;
+                overflow: hidden;
+            }
+            
+            .card-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            
+            /* Light Mode Styles */
+            :root {
+                --card-bg: #ffffff;
+                --alert-bg: rgba(13, 110, 253, 0.1);
+                --alert-border: #0d6efd;
+                --alert-text: #1e293b;
+                --card-text: #1e293b;
+                --muted-text: #64748b;
+                --success-bg: rgba(25, 135, 84, 0.1);
+                --success-border: #198754;
+                --success-text: #1e293b;
+            }
+            
+            /* Dark Mode Styles */
+            [data-theme="dark"] {
+                --card-bg: #1e293b;
+                --alert-bg: rgba(13, 110, 253, 0.15);
+                --alert-border: #3b82f6;
+                --alert-text: #f1f5f9;
+                --card-text: #f1f5f9;
+                --muted-text: #94a3b8;
+                --success-bg: rgba(16, 185, 129, 0.15);
+                --success-border: #10b981;
+                --success-text: #f1f5f9;
+            }
+            
+            /* Applied Styles */
+            .recommendation-card {
+                background-color: var(--card-bg);
+            }
+            
+            .recommendation-alert {
+                background-color: var(--alert-bg);
+                border-left: 4px solid var(--alert-border);
+                color: var(--alert-text);
+            }
+            
+            .alert-text, .card-title-text, .card-body-text, .success-text {
+                color: var(--card-text);
+            }
+            
+            .card-body-text {
+                color: var(--muted-text);
+            }
+            
+            .recommendation-success {
+                background-color: var(--success-bg);
+                border-left: 4px solid var(--success-border);
+            }
+            
+            .success-title, .success-text {
+                color: var(--success-text);
+            }
+            
+            .text-primary-alert {
+                color: var(--alert-border);
+            }
+            
+            .success-icon {
+                color: var(--success-border);
+            }
+            
+            /* Interactive Elements */
+            .resource-card {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                border-radius: 16px;
+                background-color: var(--card-bg);
+            }
+            
+            .resource-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2) !important;
+            }
+            
+            .btn-hover-grow {
+                transition: all 0.3s ease;
+            }
+            
+            .btn-hover-grow:hover {
+                transform: scale(1.02);
+            }
+            
+            .icon-shape {
+                transition: transform 0.3s ease;
+            }
+            
+            .resource-card:hover .icon-shape {
+                transform: scale(1.1);
+            }
+            
+            .concept-badge {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+            }
+            
+            .concept-badge:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            .youtube-card {
+                border-left: 4px solid #FF0000;
+            }
+            
+            .coursera-card {
+                border-left: 4px solid #0056D2;
+            }
+        </style>
+        <!-- Navigation Buttons -->
+        <div class="mt-5 border-top pt-4">
+            <div class="d-flex justify-content-between flex-wrap gap-3">
+                <a href="/" class="btn btn-lg btn-outline-primary">
+                    <i class="fas fa-home me-2"></i>
+                    <span data-translate="back_home">Back to Home</span>
+                </a>
+                <a href="{{ url_for('regenerate_quiz') }}" class="btn btn-lg btn-primary">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    <span data-translate="try_another">Try Another Quiz</span>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // THEME TOGGLE - FULLY WORKING
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            if (theme === 'dark') {
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+                document.body.style.background = 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
+            } else {
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+                document.body.style.background = '';
+            }
+        }
+        
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        setTheme(savedTheme);
+        
+        // Toggle theme on button click
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        // TRANSLATION SYSTEM - FULLY WORKING
+        let currentLang = localStorage.getItem('selectedLang') || 'en';
+        let translationCache = JSON.parse(localStorage.getItem('translationCache') || '{}');
+        
+        function debounce(func, timeout = 500) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+        
+        const translateContent = debounce(async (targetLang) => {
+            const select = document.getElementById('languageSelect');
+            const spinner = document.getElementById('langSpinner');
+            
+            try {
+                select.disabled = true;
+                spinner.classList.remove('d-none');
+                
+                const elements = document.querySelectorAll('[data-translate]');
+                const batch = {};
+
+                elements.forEach(el => {
+                    if(!el.dataset.original) {
+                        const key = el.dataset.translate;
+                        const text = el.textContent.trim() || el.placeholder;
+                        if(text) {
+                            el.dataset.original = text;
+                            batch[key] = text;
+                        }
+                    }
+                });
+
+                const needsTranslation = Object.entries(batch)
+                    .filter(([key, text]) => !translationCache[`${targetLang}:${text}`])
+                    .reduce((acc, [key, text]) => ({ ...acc, [key]: text }), {});
+
+                if(Object.keys(needsTranslation).length > 0) {
+                    const response = await fetch('/translate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: needsTranslation,
+                            target_lang: targetLang
+                        })
+                    });
+                    
+                    const newTranslations = await response.json().catch(() => ({}));
+                    
+                    Object.entries(newTranslations).forEach(([key, trans]) => {
+                        const original = batch[key];
+                        translationCache[`${targetLang}:${original}`] = trans || original;
+                    });
+                    
+                    localStorage.setItem('translationCache', JSON.stringify(translationCache));
+                }
+
+                elements.forEach(el => {
+                    const key = el.dataset.translate;
+                    const original = el.dataset.original;
+                    const cacheKey = `${targetLang}:${original}`;
+                    
+                    if(translationCache[cacheKey]) {
+                        if(el.tagName === 'INPUT') {
+                            el.placeholder = translationCache[cacheKey];
+                        } else {
+                            el.textContent = translationCache[cacheKey];
+                        }
+                    }
+                });
+
+                localStorage.setItem('selectedLang', targetLang);
+                document.documentElement.lang = targetLang;
+
+            } catch (error) {
+                console.error('Translation error:', error);
+            } finally {
+                select.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        });
+
+        // Initialize language
+        document.addEventListener('DOMContentLoaded', () => {
+            const langSelect = document.getElementById('languageSelect');
+            langSelect.value = currentLang;
+            
+            langSelect.addEventListener('change', (e) => {
+                translateContent(e.target.value);
+            });
+            
+            if(currentLang !== 'en') {
+                translateContent(currentLang);
+            }
+        });
+    </script>
+</body>
+</html>

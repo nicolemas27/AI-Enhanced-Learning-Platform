@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}LearnTube - Login{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .auth-container {
+        max-width: 500px;
+        margin: 5rem auto;
+        padding: 3rem;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        animation: slideUp 0.6s ease;
+
+    }
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .alert {
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .alert-error {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .alert-success {
+        background: #dcfce7;
+        color: #16a34a;
+    }
+
+    .alert-icon {
+        font-size: 1.25rem;
+    }
+    
+    .auth-container h2 {
+        font-weight: 800;
+        margin-bottom: 2rem;
+        color: #1e293b;
+        text-align: center;
+    }
+
+    .auth-switch {
+        text-align: center;
+        margin-top: 2rem;
+        color: #64748b;
+    }
+
+    .auth-switch a {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .auth-switch a:hover {
+        color: #6366f1;
+        text-decoration: underline;
+    }
+
+    .form-control {
+        border-radius: 12px;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Welcome Back! 👋</h2>
+    <form method="POST" action="{{ url_for('auth.login') }}">
+        <div class="mb-4">
+            <label class="form-label">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
+        </div>
+        <div class="mb-4">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Sign In</button>
+    </form>
+    <div class="auth-switch">
+        New here? <a href="{{ url_for('auth.signup') }}">Create an account</a>
+    </div>
+</div>
+{% endblock %}

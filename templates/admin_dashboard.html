@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2 class="my-4">Admin Dashboard</h2>
+
+    <!-- Key Metrics Row -->
+    <div class="row mb-4">
+        <!-- Total Users -->
+        <div class="col-md-6 mb-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <h5>Total Users</h5>
+                    <div class="display-4">{{ user_stats.total_users|default(0) }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Users -->
+        <div class="col-md-6 mb-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <h5>Weekly Active</h5>
+                    <div class="display-4">{{ user_stats.weekly_active|default(0) }}</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Feature Usage Chart -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Feature Usage (Last 7 Days)</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="featureUsageChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Model Performance -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Model Performance</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% if user_stats.model_performance %}
+                    {% for type, stats in user_stats.model_performance.items() %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6>{{ type|title }}</h6>
+                                <div class="display-4">{{ stats.success_rate|default(0)|round(1) }}%</div>
+                                <small class="text-muted">{{ stats.total|default(0) }} requests</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">No model performance data available</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Feature Usage Chart
+    document.addEventListener('DOMContentLoaded', function() {
+        new Chart(document.getElementById('featureUsageChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Quizzes', 'Flashcards', 'Summaries', 'Graphs'],
+                datasets: [{
+                    label: 'Usage Count',
+                    data: [
+                        {{ user_stats.feature_usage.quizzes|default(0) }},
+                        {{ user_stats.feature_usage.flashcards|default(0) }},
+                        {{ user_stats.feature_usage.summaries|default(0) }},
+                        {{ user_stats.feature_usage.graphs|default(0) }}
+                    ],
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.8)',
+                        'rgba(28, 200, 138, 0.8)',
+                        'rgba(54, 185, 204, 0.8)',
+                        'rgba(246, 194, 62, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Time! | Know It All{% endblock %}
+
+{% block styles %}
+<link href="https://unpkg.com/@mermaid-js/mermaid@8.14.0/dist/mermaid.min.css" rel="stylesheet">
+<script src="https://unpkg.com/@mermaid-js/mermaid@8.14.0/dist/mermaid.min.js"></script>
+<style>
+    :root {
+        --quiz-primary: #6366f1;
+        --quiz-primary-hover: #4f46e5;
+        --quiz-secondary: #64748b;
+        --quiz-bg: #f8fafc;
+        --quiz-card-bg: #ffffff;
+        --quiz-text: #1e293b;
+        --quiz-border: #e2e8f0;
+        --quiz-correct: #10b981;
+        --quiz-incorrect: #ef4444;
+        --quiz-highlight: #e0e7ff;
+    }
+
+    [data-theme="dark"] {
+        --quiz-bg: #0f172a;
+        --quiz-card-bg: #1e293b;
+        --quiz-text: #f1f5f9;
+        --quiz-border: #334155;
+        --quiz-highlight: #2e3a5c;
+    }
+
+    .quiz-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: var(--quiz-card-bg);
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--quiz-border);
+        transition: all 0.3s ease;
+    }
+
+    .quiz-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .quiz-title {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .quiz-meta {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .quiz-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .question-card {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        border-radius: 12px;
+        background: var(--quiz-card-bg);
+        border: 1px solid var(--quiz-border);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    [data-theme="dark"] .question-card {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .question-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .question-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .question-number {
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .question-text {
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    .option-card {
+        padding: 1rem 1.5rem;
+        margin: 0.75rem 0;
+        border: 2px solid var(--quiz-border);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        background: var(--quiz-card-bg);
+    }
+
+    .option-card:hover {
+        background: var(--quiz-highlight);
+        border-color: var(--primary);
+    }
+
+    .option-card.selected {
+        background: var(--quiz-highlight);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+    }
+
+    .option-letter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        color: white;
+        font-weight: bold;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .quiz-actions {
+        display: grid;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .submit-btn {
+        padding: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .visual-aid {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: var(--quiz-highlight);
+        border-radius: 10px;
+        border: 1px solid var(--quiz-border);
+    }
+
+    .adaptation-alert {
+        border-left: 4px solid var(--primary);
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .progress-indicator {
+        position: fixed;
+        top: 80px;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: rgba(99, 102, 241, 0.2);
+        z-index: 999;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+        width: 0%;
+        transition: width 0.5s ease;
+    }
+
+    @media (max-width: 768px) {
+        .quiz-container {
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        
+        .quiz-title {
+            font-size: 1.8rem;
+        }
+    }
+
+    /* Animation for correct selection */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+        100% { transform: scale(1); }
+    }
+
+    .option-card.selected {
+        animation: pulse 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Progress Indicator -->
+<div class="progress-indicator">
+    <div class="progress-bar" id="quizProgress"></div>
+</div>
+
+<div class="quiz-container">
+    <!-- Header Section -->
+    <div class="quiz-header">
+        <h1 class="quiz-title">Know It All? Prove It!</h1>
+        
+        <div class="quiz-meta">
+            <span class="quiz-badge bg-primary bg-opacity-10 text-primary">
+                <i class="fas fa-question-circle"></i> {{ questions|length }} Questions
+            </span>
+            <span class="quiz-badge bg-secondary bg-opacity-10 text-secondary">
+                <i class="fas fa-signal"></i> {{ difficulty|capitalize }} Level
+            </span>
+        </div>
+
+        {% if quiz_data.data.adaptation_log %}
+        <div class="alert alert-info adaptation-alert">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-brain fa-lg"></i>
+                <div>
+                    <h5 class="mb-1">Adapted Quiz</h5>
+                    <p class="mb-0">
+                        Level adjusted from 
+                        <span class="badge bg-secondary">{{ quiz_data.data.adaptation_log.previous_difficulty|capitalize }}</span>
+                        to 
+                        <span class="badge bg-success">{{ quiz_data.data.adaptation_log.new_difficulty|capitalize }}</span>
+                    </p>
+                    <small class="text-muted">{{ quiz_data.data.adaptation_log.reason }}</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Error Message Display -->
+    {% if error %}
+    <div class="alert alert-danger mb-4" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Quiz Form -->
+    <form method="POST" action="/submit" id="quizForm">
+        {% for question in questions %}
+        {% set question_index = loop.index0 %}
+        <div class="question-card" id="question-{{ loop.index }}">
+            <div class="question-header">
+                <div class="question-number">Question {{ loop.index }}</div>
+                <p class="question-text">{{ question.question }}</p>  
+            </div>
+            
+            <div class="options-container">
+                {% for option in question.options %}
+                <div class="form-check">
+                    <input 
+                        type="radio" 
+                        name="q{{ question_index }}"
+                        value="{{ loop.index0 }}"
+                        id="q{{ question_index }}_option{{ loop.index0 }}"
+                        required
+                    >
+                    <label class="option-card" for="q{{ question_index }}_option{{ loop.index0 }}">
+                        <span class="option-letter">{{ ['A', 'B', 'C', 'D'][loop.index0] }}</span>
+                        <span class="option-text">{{ option }}</span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if question and question.diagram %}
+            <div class="visual-aid mt-3">
+                {% if question.diagram_type == 'mermaid' %}
+                <div class="mermaid">
+                    {{ question.diagram }}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    {{ question.diagram }}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- Action Buttons -->
+        <div class="quiz-actions">
+            <button type="submit" class="btn btn-primary submit-btn">
+                <i class="fas fa-paper-plane"></i> Submit Quiz
+            </button>
+            
+            <a href="{{ url_for('regenerate_quiz') }}" class="btn btn-outline-secondary submit-btn">
+                <i class="fas fa-sync-alt"></i> Generate Adapted Quiz
+                <span class="badge bg-warning ms-2">{{ next_difficulty|capitalize }}</span>
+            </a>
+
+            <button type="button" class="btn btn-success submit-btn" onclick="saveQuiz()">
+                <i class="fas fa-save"></i> Save This Quiz
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Initialize Mermaid for diagrams
+    mermaid.initialize({ 
+        startOnLoad: true,
+        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+    });
+
+    // Update progress indicator
+    function updateProgress() {
+        const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+        const total = document.querySelectorAll('.question-card').length;
+        const progress = (answered / total) * 100;
+        document.getElementById('quizProgress').style.width = `${progress}%`;
+    }
+
+    // Track answer selections
+    document.querySelectorAll('.option-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const questionContainer = this.closest('.options-container');
+            
+            // Remove "selected" class from all options in this question
+            questionContainer.querySelectorAll('.option-card').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+
+            // Mark the clicked option as selected
+            this.classList.add('selected');
+            this.previousElementSibling.checked = true;
+            
+            updateProgress();
+            
+            // Track selection
+            const questionIndex = this.closest('.question-card').id.split('-')[1];
+            const optionIndex = this.previousElementSibling.value;
+            trackSelection(questionIndex, optionIndex);
+        });
+    });
+
+    // Track quiz interaction
+    function trackSelection(questionIndex, optionIndex) {
+        fetch('/track-interaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                event_type: 'answer_selection',
+                metadata: {
+                    question_index: questionIndex,
+                    selected_option: optionIndex
+                }
+            })
+        });
+    }
+
+    // Save quiz function
+    function saveQuiz() {
+        fetch('/save-quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => {
+            if(response.ok) {
+                // Show sweet alert
+                Swal.fire({
+                    title: 'Quiz Saved!',
+                    text: 'You can review this quiz later in your progress dashboard',
+                    icon: 'success',
+                    confirmButtonColor: 'var(--primary)'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to save quiz',
+                    icon: 'error'
+                });
+            }
+        });
+    }
+
+    // Track initial quiz view
+    document.addEventListener('DOMContentLoaded', () => {
+        fetch('/track-interaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                event_type: 'quiz_view',
+                metadata: {
+                    question_count: {{ questions|length }},
+                    difficulty: '{{ difficulty }}'
+                }
+            })
+        });
+
+        // Initialize progress
+        updateProgress();
+    });
+
+    // Theme change handler for Mermaid
+    document.getElementById('themeToggle').addEventListener('click', function() {
+        setTimeout(() => {
+            mermaid.initialize({ 
+                theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+            });
+            mermaid.init();
+        }, 300);
+    });
+</script>
+
+<!-- SweetAlert for beautiful alerts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}LearnTube - Sign Up{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .auth-container {
+        max-width: 500px;
+        margin: 5rem auto;
+        padding: 3rem;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .auth-container h2 {
+        font-weight: 800;
+        margin-bottom: 2rem;
+        color: #1e293b;
+        text-align: center;
+    }
+
+    .form-control {
+        border-radius: 12px;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .password-requirements {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+
+    .api-key-help {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-top: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2>Join LearnTube Today! 🚀</h2>
+    <form method="POST" action="{{ url_for('auth.signup') }}">
+        <div class="mb-4">
+            <label class="form-label">Email Address</label>
+            <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
+        </div>
+        
+        <div class="mb-4">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Create a password" required>
+            <div class="password-requirements">
+                Must be at least 8 characters
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Gemini API Key</label>
+            <input type="text" name="api_key" class="form-control" 
+                   placeholder="Enter your Gemini API key" required>
+            <div class="api-key-help">
+                Get your API key from 
+                <a href="https://ai.google.dev/" target="_blank" rel="noopener">
+                    Google AI Studio
+                </a>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Get Started</button>
+    </form>
+    <div class="auth-switch mt-3 text-center">
+        Already have an account? <a href="{{ url_for('auth.login') }}">Sign in here</a>
+    </div>
+</div>
+<div class="mb-4">
+    <label class="form-label">Gemini API Key (Optional)</label>
+    <input type="text" name="api_key" class="form-control" 
+           placeholder="Get from https://ai.google.dev">
+    <div class="form-text">
+        Add later in settings for higher usage limits
+    </div>
+</div>
+{% endblock %}

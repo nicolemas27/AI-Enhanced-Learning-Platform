@@ -1,0 +1,21 @@
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Extension packaging
+*.zip
+*.crx
+*.pem
+
+# Node modules (if you add any in the future)
+node_modules/
+
+# Environment files
+.env
+.env.local

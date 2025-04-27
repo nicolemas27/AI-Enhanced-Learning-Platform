@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="error-card p-4 rounded-4 shadow-sm">
+        <div class="error-header text-center mb-4">
+            <div class="error-icon mb-3">
+                <i class="fas fa-book-open fa-3x text-primary"></i>
+                <div class="blob"></div>
+            </div>
+            <h2 class="text-muted">Oops! Learning Detour 🧭</h2>
+            <p class="lead text-muted">{{ message }}</p>
+        </div>
+
+        <div class="word-game-section mb-4">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title text-center mb-3">Word Scramble Challenge</h5>
+                    <div id="scramble-container" class="text-center mb-3">
+                        <div id="scrambled-word" class="h4 text-primary mb-2"></div>
+                        <input type="text" id="guess-input" class="form-control mb-2" 
+                               placeholder="Unscramble the word...">
+                        <button onclick="checkGuess()" class="btn btn-success">
+                            Check Answer <i class="fas fa-check"></i>
+                        </button>
+                        <div id="feedback" class="mt-2 small"></div>
+                    </div>
+                    <div class="progress-time mt-3">
+                        <div class="progress" style="height: 8px;">
+                            <div id="game-progress" class="progress-bar bg-info" 
+                                 role="progressbar" style="width: 100%"></div>
+                        </div>
+                        <div class="text-end text-muted small mt-1">Time remaining: <span id="countdown">30</span>s</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="error-actions text-center">
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-arrow-circle-left"></i> Return to Safety
+            </a>
+            <div class="mt-3">
+                <a href="#" class="text-muted small" data-bs-toggle="collapse" 
+                   data-bs-target="#errorDetails">View Technical Details</a>
+                <div class="collapse mt-2" id="errorDetails">
+                    <div class="card card-body small">
+                        <code>Error occurred at: {{ now }}</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .error-card {
+        background: #f8f9fa;
+        border: 1px solid rgba(0,0,0,0.1);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .blob {
+        width: 100px;
+        height: 100px;
+        background: rgba(13,110,253,0.1);
+        position: absolute;
+        border-radius: 50%;
+        animation: blob-animate 8s infinite;
+        transform: translate(-50%, -50%);
+    }
+
+    .word-game-section {
+        background: rgba(255,255,255,0.9);
+        border-radius: 12px;
+        transition: transform 0.3s ease;
+    }
+
+    .word-game-section:hover {
+        transform: translateY(-2px);
+    }
+
+    @keyframes blob-animate {
+        0% { transform: scale(1) translate(-50%, -50%); }
+        50% { transform: scale(1.2) translate(-50%, -50%); }
+        100% { transform: scale(1) translate(-50%, -50%); }
+    }
+
+    #feedback {
+        min-height: 20px;
+    }
+
+    .progress-time {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+</style>
+
+<script>
+    // Educational word list
+    const words = ['PYTHON', 'FORMULA', 'EQUATION', 'SCIENCE', 'HISTORY', 'GRAMMAR'];
+    let currentWord = '';
+    let scrambledWord = '';
+    let timeLeft = 30;
+    let timer;
+
+    function startGame() {
+        // Select random word
+        currentWord = words[Math.floor(Math.random() * words.length)];
+        scrambledWord = scrambleWord(currentWord);
+        document.getElementById('scrambled-word').textContent = scrambledWord;
+        
+        // Start timer
+        timer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('countdown').textContent = timeLeft;
+            document.getElementById('game-progress').style.width = 
+                `${(timeLeft/30)*100}%`;
+            
+            if(timeLeft <= 0) {
+                clearInterval(timer);
+                showFeedback("Time's up! The word was: " + currentWord, 'danger');
+                disableInput();
+            }
+        }, 1000);
+    }
+
+    function scrambleWord(word) {
+        return word.split('').sort(() => Math.random() - 0.5).join('');
+    }
+
+    function checkGuess() {
+        const guess = document.getElementById('guess-input').value.toUpperCase();
+        if(guess === currentWord) {
+            showFeedback("Correct! Well done! 🎉", 'success');
+            clearInterval(timer);
+            disableInput();
+        } else {
+            showFeedback("Keep trying! Remember to check your spelling", 'warning');
+            document.getElementById('guess-input').classList.add('is-invalid');
+            setTimeout(() => {
+                document.getElementById('guess-input').classList.remove('is-invalid');
+            }, 1000);
+        }
+    }
+
+    function showFeedback(message, type) {
+        const feedback = document.getElementById('feedback');
+        feedback.textContent = message;
+        feedback.className = `text-${type} small mt-2`;
+    }
+
+    function disableInput() {
+        document.getElementById('guess-input').disabled = true;
+        document.querySelector('button').disabled = true;
+    }
+
+    // Start the game when page loads
+    window.addEventListener('DOMContentLoaded', startGame);
+</script>
+{% endblock %}

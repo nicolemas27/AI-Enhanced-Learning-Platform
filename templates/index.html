@@ -1,0 +1,570 @@
+{% extends "base.html" %}
+
+{% block title %}LearnTube | Fast-Track Your Knowledge{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        --secondary-gradient: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+    }
+
+    /* Light mode */
+    body {
+        background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
+        min-height: 100vh;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background-attachment: fixed;
+        transition: all 0.5s ease;
+    }
+
+    /* Dark mode */
+    [data-theme="dark"] body {
+        background: 
+            linear-gradient(135deg, #0f172a 0%, #1e293b 100%),
+            radial-gradient(circle at 20% 30%, rgba(30, 41, 59, 0.8) 0%, transparent 40%) !important;
+        background-attachment: fixed;
+    }
+
+    .container.py-5 {
+        animation: cardEntrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .main-card {
+        background: rgba(255, 255, 255, 0.86);
+        backdrop-filter: blur(12px);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        position: relative;
+        z-index: 1;
+    }
+
+    .main-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .translatable {
+        transition: all 0.3s ease;
+    }
+
+    .card-header {
+        background: var(--primary-gradient);
+        padding: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .card-header::after {
+        content: '';
+        position: absolute;
+        bottom: -30px;
+        right: -30px;
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    h1 {
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        font-size: 2.8rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: relative;
+        z-index: 1;
+        line-height: 1.2;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 1.25rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 1.05rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
+
+    .btn {
+        border: none;
+        border-radius: 14px;
+        padding: 1.25rem 2rem;
+        font-size: 1.15rem;
+        font-weight: 600;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        background-size: 200% auto;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 200%;
+        height: 100%;
+        background: linear-gradient(
+            120deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+        );
+        transition: all 0.6s ease;
+    }
+
+    .btn:hover::after {
+        left: 100%;
+    }
+
+    .btn-primary {
+        background-image: var(--primary-gradient);
+    }
+
+    .btn-info {
+        background-image: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%);
+    }
+
+    .btn-success {
+        background-image: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .btn-warning {
+        background-image: var(--secondary-gradient);
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+        display: none;
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .loading-content {
+        text-align: center;
+        max-width: 500px;
+        padding: 2rem;
+    }
+
+    .edu-quote {
+        max-width: 600px;
+        text-align: center;
+        font-size: 1.4rem;
+        color: #334155;
+        margin-top: 2rem;
+        font-style: italic;
+        line-height: 1.6;
+        padding: 0 1rem;
+        opacity: 0;
+        animation: fadeInUp 0.5s ease forwards;
+    }
+
+    @keyframes cardEntrance {
+        from {
+            opacity: 0;
+            transform: translateY(40px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .alert-danger {
+        background: #fee2e2;
+        border-color: #fca5a5;
+        color: #dc2626;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .feature-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: rgba(59, 130, 246, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+
+    .btn-lg {
+        font-size: 1.15rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+
+    .btn-lg i {
+        font-size: 1.4em;
+        transition: transform 0.3s ease;
+    }
+
+    .btn:hover i {
+        transform: scale(1.1);
+    }
+
+    .form-label {
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+
+    /* Video Preview Styles */
+    #video-preview {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        overflow: hidden;
+        background: rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.1);
+        margin-top: 1rem;
+        display: none;
+        position: relative;
+    }
+
+    [data-theme="dark"] #video-preview {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.1);
+    }
+
+    #video-preview iframe {
+        border: none;
+        width: 100%;
+        height: 100%;
+    }
+
+    .video-preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: rgba(0,0,0,0.03);
+        position: relative;
+    }
+
+    [data-theme="dark"] .video-preview-header {
+        background: rgba(255,255,255,0.03);
+    }
+
+    #video-title {
+        font-weight: 600;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100% - 30px);
+    }
+
+    #video-duration {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    [data-theme="dark"] #video-duration {
+        color: #94a3b8;
+    }
+
+    .ratio-16x9 {
+        aspect-ratio: 16 / 9;
+    }
+
+    .close-preview {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        background: rgba(0,0,0,0.2);
+        border: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        cursor: pointer;
+        z-index: 2;
+        transition: all 0.2s ease;
+    }
+
+    .close-preview:hover {
+        background: rgba(0,0,0,0.4);
+        transform: scale(1.1);
+    }
+
+    [data-theme="dark"] .close-preview {
+        background: rgba(255,255,255,0.2);
+        color: #f1f5f9;
+    }
+
+    [data-theme="dark"] .close-preview:hover {
+        background: rgba(255,255,255,0.4);
+    }
+</style>    
+{% endblock %}
+
+{% block content %}
+    <div class="container py-5">
+        <div class="main-card shadow">
+            <div class="card-header bg-primary text-white">
+                <h1 class="text-center display-4 fw-bold" data-translate="main_title">
+                    <i class="fas fa-rocket"></i>
+                    YouTube Learning Accelerator
+                </h1>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show mb-4">
+                    <i class="fas fa-exclamation-triangle fa-lg"></i>
+                    <div>
+                        <strong data-translate="error_strong">Oops!</strong> {{ error }}
+                        <button type="button" class="btn-close mt-2" data-bs-dismiss="alert"></button>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="POST" action="/generate" id="main-form">
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-dark mb-3" data-translate="url_label">🎥 YouTube Video URL</label>
+                        <input type="url" name="url" 
+                               class="form-control form-control-lg shadow-sm" 
+                               placeholder="Paste your YouTube link here..."
+                               data-translate="url_placeholder"
+                               id="youtube-url"
+                               required>
+                        <!-- Video Preview Container -->
+                        <div id="video-preview">
+                            <button class="close-preview" id="close-preview" aria-label="Close preview">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            <div class="video-preview-header">
+                                <h5 id="video-title">Video Preview</h5>
+                                <span id="video-duration"></span>
+                            </div>
+                            <div class="ratio ratio-16x9">
+                                <iframe id="video-iframe" src="" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="form-label fw-semibold text-dark mb-3" data-translate="difficulty_label">📚 Learning Level</label>
+                        <select name="difficulty" class="form-select form-select-lg shadow-sm" required>
+                            <option value="easy" data-translate="difficulty_easy">🚀 Beginner Boost</option>
+                            <option value="medium" data-translate="difficulty_medium">💡 Intermediate Insights</option>
+                            <option value="hard" data-translate="difficulty_hard">🧠 Advanced Mastery</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid gap-4">
+                        <button type="submit" name="action" value="quiz" 
+                                class="btn btn-primary btn-lg shadow-lg" data-translate="quiz_btn">
+                            <i class="fas fa-brain"></i>
+                            Generate Smart Quiz
+                        </button>
+                        <button type="submit" name="action" value="summary" 
+                                class="btn btn-info btn-lg shadow-lg" data-translate="summary_btn">
+                            <i class="fas fa-scroll"></i>
+                            Create Summary
+                        </button>
+                        <button type="submit" name="action" value="flashcards" 
+                                class="btn btn-success btn-lg shadow-lg" data-translate="flashcards_btn">
+                            <i class="fas fa-layer-group"></i>
+                            Flashcard Master
+                        </button>
+                        <button type="submit" formaction="/generate-graph"
+                                class="btn btn-warning btn-lg shadow-lg" data-translate="knowledge_map_btn">
+                            <i class="fas fa-map"></i>
+                            Knowledge Mapping
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Loading Overlay with Quotes -->
+    <div class="loading-overlay" id="loading">
+        <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
+        <div id="edu-quote" class="edu-quote"></div>
+    </div>
+    
+    <div class="auth-links">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}">Logout</a>
+        
+        {% endif %}
+    </div>
+
+    <!-- Add this right after the URL input field -->
+    <div class="mb-4">
+        {% if not current_user.is_authenticated %}
+        <div class="alert alert-light border small mb-3 py-2 px-3">
+            <div class="d-flex align-items-start">
+                <i class="fas fa-key me-2 text-muted mt-1"></i>
+                <div class="flex-grow-1">
+                    {% set remaining = MAX_FREE_USES - session.get('free_uses', 0) %}
+                    {% if remaining > 0 %}
+                        <span class="text-muted">Free uses left: <strong class="text-dark">{{ remaining }}/{{ MAX_FREE_USES }}</strong></span>
+                    {% else %}
+                        <div class="text-center">
+                            <div class="fw-semibold mb-1">✨ All free attempts used ✨</div>
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-outline-secondary">
+                                    Login
+                                </a>
+                                <a href="{{ url_for('auth.signup') }}" class="btn btn-sm btn-outline-secondary">
+                                    Sign Up
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+        
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.botpress.cloud/webchat/v2.2/inject.js"></script>
+    <script src="https://files.bpcontent.cloud/2025/02/22/05/20250222050510-RE943IAA.js"></script>
+
+    <script>
+        // Educational Quotes Array
+        const eduQuotes = [
+            "Education is not the filling of a pail, but the lighting of a fire. – William Butler Yeats",
+            "The beautiful thing about learning is that no one can take it away from you. – B.B. King",
+            "Education is the passport to the future, for tomorrow belongs to those who prepare for it today. – Malcolm X",
+            "Learning is never done without errors and defeat. – Vladimir Lenin",
+            "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice. – Brian Herbert",
+            "Education is the kindling of a flame, not the filling of a vessel. – Socrates",
+            "The more that you read, the more things you will know. The more that you learn, the more places you'll go. – Dr. Seuss"
+        ];
+
+        document.getElementById('main-form').addEventListener('submit', function() {
+            const loading = document.getElementById('loading');
+            const quoteElement = document.getElementById('edu-quote');
+            
+            loading.style.display = 'flex';
+            let quoteIndex = Math.floor(Math.random() * eduQuotes.length);
+            quoteElement.textContent = eduQuotes[quoteIndex];
+
+            const quoteInterval = setInterval(() => {
+                quoteElement.style.opacity = 0;
+                setTimeout(() => {
+                    quoteIndex = (quoteIndex + 1) % eduQuotes.length;
+                    quoteElement.textContent = eduQuotes[quoteIndex];
+                    quoteElement.style.opacity = 1;
+                }, 500);
+            }, 8000);
+
+            // Clear interval when new page loads
+            window.addEventListener('load', () => {
+                clearInterval(quoteInterval);
+                loading.style.display = 'none';
+            });
+        });
+
+        // YouTube Video Preview Functionality
+        const youtubeUrlInput = document.getElementById('youtube-url');
+        const preview = document.getElementById('video-preview');
+        const closePreviewBtn = document.getElementById('close-preview');
+        const videoIframe = document.getElementById('video-iframe');
+
+        youtubeUrlInput.addEventListener('input', debounce(function(e) {
+            const url = e.target.value.trim();
+            const videoId = extractVideoId(url);
+            
+            if (videoId) {
+                // Show YouTube embed
+                videoIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&modestbranding=1`;
+                preview.style.display = 'block';
+                
+                // Optional: You can add metadata fetching here if you implement the backend
+                // fetchVideoMetadata(videoId);
+            } else {
+                preview.style.display = 'none';
+                videoIframe.src = '';
+            }
+        }, 500));
+
+        // Close preview button functionality
+        closePreviewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            preview.style.display = 'none';
+            youtubeUrlInput.value = '';
+            videoIframe.src = '';
+        });
+
+        // Extract YouTube video ID from URL
+        function extractVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // Optional: Fetch video metadata (requires backend implementation)
+        async function fetchVideoMetadata(videoId) {
+            try {
+                const response = await fetch(`/api/youtube-metadata?id=${videoId}`);
+                const data = await response.json();
+                
+                if (data.title) {
+                    document.getElementById('video-title').textContent = data.title;
+                }
+                if (data.duration) {
+                    document.getElementById('video-duration').textContent = formatDuration(data.duration);
+                }
+            } catch (error) {
+                console.error('Error fetching video metadata:', error);
+            }
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        // Debounce function to prevent rapid firing of events
+        function debounce(func, timeout = 300) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+    </script>
+{% endblock %}
