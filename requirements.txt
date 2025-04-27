@@ -1,5 +1,7 @@
-Flask==3.1.0
-pymongo==4.3.3
-python-dotenv==1.0.1
+flask==3.0.2
+gunicorn==21.2.0
+pymongo==4.6.2
+python-dotenv==1.0.0
 pytube==15.0.0
-youtube-transcript-api==0.6.2
+youtube-transcript-api==0.6.1
+google-generativeai==0.3.2

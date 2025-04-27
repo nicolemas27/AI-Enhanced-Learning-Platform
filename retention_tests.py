@@ -1,7 +1,7 @@
 # retention_tests.py
 import unittest
 from datetime import datetime, timedelta
-from learn import app, db
+from app import app, db
 from adaptive_learning import EnhancedMemoryModel, LearningAnalyzer
 
 class TestRetention(unittest.TestCase):
