@@ -20,3 +20,4 @@ dtw-python
 mlxtend
 Flask-Login
 Werkzeug
+translate
