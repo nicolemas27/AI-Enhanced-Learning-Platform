@@ -1,4 +1,3 @@
-# filepath: c:\Nicole\PROJECTS\AI Enhanced Learning Platform - LEARNTUBE\requirements.txt
 flask==3.0.2
 gunicorn==21.2.0
 pymongo==4.6.2
@@ -21,3 +20,6 @@ mlxtend
 Flask-Login
 Werkzeug
 translate
+cryptography
+networkx
+itsdangerous
