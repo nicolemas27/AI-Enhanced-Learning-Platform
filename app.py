@@ -87,9 +87,8 @@ def get_transcript(url):
         logging.debug(f"Fetching transcript for video ID: {video_id}")
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         
-        # Try fetching English transcript first
         transcript = transcript_list.find_transcript(['en'])
-        return " ".join([item['text'] for item in transcript.fetch()])
+        return " ".join([item.text for item in transcript.fetch()])
         
     except NoTranscriptFound:
         raise Exception("No subtitles available for this video")
