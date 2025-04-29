@@ -35,7 +35,7 @@ from recommendations import generate_recommendations
 
 
 logging.getLogger('pymongo').setLevel(logging.WARNING)
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
+logging.getLogger('werkzeug').setLevel(logging.INFO)
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
@@ -43,6 +43,8 @@ logging.basicConfig(level=logging.DEBUG)
 load_dotenv()
 
 app = Flask(__name__)
+app.config['DEBUG'] = True
+app.config['PROPAGATE_EXCEPTIONS'] = True
 app.ab_test_manager = ABTestManager()
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key')  # Fallback for development
 login_manager = LoginManager(app)
@@ -81,21 +83,44 @@ def handle_temp_key():
     return redirect(url_for('index'))
 
 def get_transcript(url):
-    """Get YouTube video transcript with error handling"""
+    """Robust YouTube transcript fetcher with validation"""
     try:
         video_id = extract.video_id(url)
-        logging.debug(f"Fetching transcript for video ID: {video_id}")
+        logging.debug(f"Fetching transcript for: {video_id}")
+        
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         
-        transcript = transcript_list.find_transcript(['en'])
-        return " ".join([item.text for item in transcript.fetch()])
+        try:
+            transcript = transcript_list.find_manually_created_transcript(['en'])
+        except NoTranscriptFound:
+            transcript = transcript_list.find_generated_transcript(['en'])
+            
+        raw_transcript = transcript.fetch()
         
-    except NoTranscriptFound:
-        raise Exception("No subtitles available for this video")
-    except Exception as e:
-        logging.error(f"Transcript error: {str(e)}")
-        raise Exception(f"Could not fetch transcript: {str(e)}")
+        # Validate transcript structure
+        if not raw_transcript:
+            raise ValueError("Empty transcript received")
+            
+        if not isinstance(raw_transcript, list) or not all(
+            isinstance(item, dict) and 'text' in item 
+            for item in raw_transcript
+        ):
+            error_msg = f"Invalid transcript format. First item: {raw_transcript[0]!r}"
+            logging.error(error_msg)
+            raise ValueError(error_msg)
+            
+        #logging.debug(f"Transcript list: {transcript_list}")
+        logging.debug(f"Transcript type: {type(transcript)}")
+        logging.debug(f"First item type: {type(raw_transcript[0])}")
+        
+        return " ".join([item['text'] for item in raw_transcript])
 
+    except NoTranscriptFound:
+        raise Exception("No English subtitles available for this video")
+    except Exception as e:
+        logging.error(f"Transcript Error: {str(e)}", exc_info=True)
+        raise Exception(f"Could not fetch transcript: {str(e)}")
+    
 def analyze_feature_preference(user_id):
     # Get all relevant events
     activities = db.db.research_metrics.find({
@@ -1708,4 +1733,13 @@ def default_zero_data():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Set up proper logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s %(levelname)s %(message)s',
+        handlers=[
+            logging.StreamHandler(),  # Output to console
+            logging.FileHandler('app.log')  # Output to file
+        ]
+    )
+    app.run(debug=True, port=5000)

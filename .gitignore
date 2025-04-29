@@ -1,3 +1,11 @@
 .env
 __pycache__/
 *.pyc
+venv/
+*.pyo
+*.pyd
+*.db
+*.log
+app.log
+.hypothesis/
+*.hypothesis/
