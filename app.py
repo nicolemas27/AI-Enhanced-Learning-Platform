@@ -154,7 +154,7 @@ def analyze_feature_preference(user_id):
         'raw_counts': feature_counts
     }
 
-def generate_quiz(transcript, difficulty, url):
+def generate_quiz(transcript, difficulty, url, previous_questions=None):
     """Generate 5 questions with 4 options with robust error handling"""
     try:
          # Get API key from session
@@ -166,6 +166,14 @@ def generate_quiz(transcript, difficulty, url):
         # Truncate transcript to prevent overflow and add format instructions
         truncated_transcript = transcript[:3000]  
         random_seed = random.randint(0, 10000)
+        
+        # Add previous questions to avoid repetition
+        previous_questions_text = ""
+        if previous_questions:
+            previous_questions_text = "Previously generated questions (DO NOT REPEAT THESE):\n"
+            for i, q in enumerate(previous_questions):
+                previous_questions_text += f"{i+1}. {q['question']}\n"
+        
         prompt = f"""Generate EXACTLY 5 NEW quiz questions (DIFFERENT from previous ones) from this transcript in PURE JSON format.
 Follow these rules STRICTLY:
 1. Output must be valid JSON ONLY - no markdown, text, or comments
@@ -184,6 +192,7 @@ Follow these rules STRICTLY:
 3. Difficulty level: {difficulty}
 4. Ensure correct answer index (0-3) matches option order
 5. Transcript content: {truncated_transcript}
+{previous_questions_text}
 Random seed: {random_seed}..."""
 
         model = genai.GenerativeModel("gemini-1.5-flash-latest")
@@ -1184,11 +1193,15 @@ def regenerate_quiz():
             weak_question_count=weak_question_count
         )
 
+        # Get previous questions to avoid repetition
+        previous_questions = old_content['data']['questions']
+
         # Generate updated quiz with new difficulty
         new_quiz = generate_quiz(
             transcript=old_content['data']['transcript'],
             difficulty=old_content['data']['difficulty'],
-            url=old_content['data']['video_url']
+            url=old_content['data']['video_url'],
+            previous_questions=previous_questions  # Pass previous questions
         )
 
         # Store new quiz with adaptation tracking
@@ -1225,7 +1238,7 @@ def regenerate_quiz():
             'status': 'started',
             'difficulty': new_difficulty,
             'adaptation_reason': f"Previous score: {score}/{total}",
-            'is_adapted': True  # New flag to distinguish adapted attempts
+            'is_adapted': True  
         }
 
         db.db.video_progress.update_one(
@@ -1421,10 +1434,6 @@ def assign_experiment_group():
         # Get user ID from session or generate anonymous ID
         user_id = session.get('user_id') or f"anon_{random.randint(1000,9999)}"
         session['experiment_group'] = app.ab_test_manager.assign_group(user_id)
-        db.log_research_event('experiment_assignment', {
-            'group': session['experiment_group'],
-            'user_id': user_id
-        })
 
 @login_manager.user_loader
 def load_user(user_id):
