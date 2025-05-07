@@ -188,13 +188,24 @@
             <div class="key-point">
                 <div class="key-point-number">{{ loop.index }}</div>
                 <div class="key-point-content">
-                    {% if '**' in point %}
+                    {% if point is mapping and 'concept' in point and 'explanation' in point %}
+                        <!-- Handle object format with concept and explanation keys -->
+                        <h3 class="key-point-title" data-translate="key_point_{{ loop.index }}_title">{{ point.concept }}</h3>
+                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">{{ point.explanation }}</p>
+                    {% elif '**' in point and ':' in point %}
+                        <!-- Handle "**concept**: explanation" format -->
                         {% set parts = point.split('**', 2) %}
                         <h3 class="key-point-title" data-translate="key_point_{{ loop.index }}_title">{{ parts[1]|trim }}</h3>
-                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">{{ parts[2].split(':', 1)[1]|trim }}</p>
+                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">{{ parts[2].split(':', 1)[1]|trim if ':' in parts[2] else parts[2]|trim }}</p>
+                    {% elif ':' in point %}
+                        <!-- Handle "concept: explanation" format -->
+                        {% set parts = point.split(':', 1) %}
+                        <h3 class="key-point-title" data-translate="key_point_{{ loop.index }}_title">{{ parts[0]|trim }}</h3>
+                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">{{ parts[1]|trim }}</p>
                     {% else %}
-                        <h3 class="key-point-title" data-translate="key_point_{{ loop.index }}_title">Key Insight {{ loop.index }}</h3>
-                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">{{ point }}</p>
+                        <!-- Handle plain text format -->
+                        <h3 class="key-point-title" data-translate="key_point_{{ loop.index }}_title">{{ point }}</h3>
+                        <p class="key-point-text" data-translate="key_point_{{ loop.index }}_text">This point covers important aspects of the WordPress and Cloudflare integration process.</p>
                     {% endif %}
                 </div>
             </div>

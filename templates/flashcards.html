@@ -1,22 +1,206 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnTube - Flashcards</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
+        /* Theme variables */
         :root {
             --primary: #6366f1;
             --secondary: #4f46e5;
             --bg: #f8fafc;
+            --text: #1e293b;
+            --light-bg: #f8fafc;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --nav-bg: rgba(15, 23, 42, 0.95);
+            --body-bg: #0f172a;
+            --primary: #818cf8;
+            --primary-hover: #6366f1;
+            --secondary: #94a3b8;
+            --text: #f1f5f9;
+            --light-bg: #1e293b;
+            --border: #334155;
+            --bg: #0f172a;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
         }
 
         body {
             background: var(--bg);
+            margin-top: 80px;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
         }
 
+        /* Navigation styling */
+        .site-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 2.5rem;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1.5rem;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        [data-theme="dark"] .site-header {
+            background-color: rgba(15, 23, 42, 0.85);
+        }
+
+        .nav-left {
+            display: flex;
+            gap: 0.75rem;
+            margin-right: auto;
+            align-items: center;
+        }
+
+        .progress-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.6rem 1rem;
+            border-radius: var(--radius);
+            transition: var(--transition);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .progress-link:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .auth-links {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .auth-links a {
+            color: var(--secondary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 0.6rem 1rem;
+            border-radius: var(--radius);
+            transition: var(--transition);
+        }
+
+        .auth-links a:hover {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .auth-links .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .auth-links .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .auth-links .user-email {
+            color: var(--secondary);
+            font-size: 0.95rem;
+            margin-right: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Language switcher */
+        .language-switcher {
+            position: relative;
+        }
+
+        .language-switcher select {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.6rem 1rem 0.6rem 0.75rem;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            appearance: none;
+            padding-right: 2rem;
+            color: var(--text);
+        }
+
+        [data-theme="dark"] .language-switcher select {
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        .language-switcher select:hover {
+            border-color: var(--primary);
+        }
+
+        .language-switcher::after {
+            content: "⌄";
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--secondary);
+        }
+
+        #langSpinner {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+        }
+
+        /* Modified flashcard styling */
         .flashcard-grid {
             display: grid;
-            gap: 1.5rem;
-            padding: 2rem;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 0; /* Remove all gaps */
+            padding: 2rem 0; /* Remove horizontal padding to allow cards to touch */
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); /* Slightly larger cards */
+            margin-bottom: 1.5rem;
         }
 
         .flashcard {
@@ -24,6 +208,9 @@
             perspective: 1000px;
             cursor: pointer;
             transition: transform 0.3s;
+            margin-bottom: 1.5rem; /* Keep vertical margin */
+            margin-right: 0; /* Ensure no right margin */
+            margin-left: 0; /* Ensure no left margin */
         }
 
         .flashcard:hover {
@@ -93,106 +280,187 @@
             font-size: 0.9rem;
             opacity: 0.8;
         }
+        
+        .hero-title {
+            text-align: center;
+            margin: 3rem 0 2rem;
+            padding: 2rem 1rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+    
+        .hero-title::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+        }
+    
+        .hero-title h1 {
+            font-size: 2.75rem;
+            color: #1e293b;
+            margin: 0 0 1rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(45deg, #1e293b 30%, #475569 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+    
+        .hero-title .catchphrase {
+            color: #64748b;
+            font-size: 1.15rem;
+            max-width: 600px;
+            margin: 0 auto;
+            font-family: 'Inter', system-ui, sans-serif;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+    
+        .hero-title .catchphrase::before,
+        .hero-title .catchphrase::after {
+            content: '';
+            width: 30px;
+            height: 2px;
+            background: #cbd5e1;
+        }
+    
+        [data-theme="dark"] .hero-title {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        [data-theme="dark"] .hero-title h1 {
+            background: linear-gradient(45deg, #f1f5f9 30%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+        
+        [data-theme="dark"] .hero-title .catchphrase {
+            color: #94a3b8;
+        }
+        
+        [data-theme="dark"] .hero-title .catchphrase::before,
+        [data-theme="dark"] .hero-title .catchphrase::after {
+            background: #475569;
+        }
+        
+        [data-theme="dark"] .example {
+            background: #1e293b;
+            color: #cbd5e1;
+        }
+    
+        @media (max-width: 768px) {
+            .site-header {
+                padding: 1rem;
+                gap: 1rem;
+            }
+            
+            .hero-title {
+                margin: 2rem 0;
+                padding: 1.5rem 1rem;
+            }
+            
+            .hero-title h1 {
+                font-size: 2rem;
+                line-height: 1.3;
+            }
+            
+            .hero-title .catchphrase {
+                font-size: 1rem;
+                flex-wrap: wrap;
+            }
+            
+            .hero-title .catchphrase::before,
+            .hero-title .catchphrase::after {
+                display: none;
+            }
+            
+            .auth-links {
+                gap: 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <header class="site-header">
+        <!-- Left side navigation -->
+        <div class="nav-left">
+            <a href="{{ url_for('index') }}" class="progress-link">
+                <i class="fas fa-home"></i>
+                <span data-translate="home">Home</span>
+            </a>
+            <a href="{{ url_for('progress_dashboard') }}" class="progress-link">
+                <i class="fas fa-chart-line"></i>
+                <span data-translate="progress">Progress</span>
+            </a>
+        </div>
+
+        <!-- Authentication links -->
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span class="user-email">{{ current_user.email }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-primary">
+                    <span data-translate="logout">Logout</span>
+                </a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">
+                    <span data-translate="login">Login</span>
+                </a>
+                <a href="{{ url_for('auth.signup') }}" class="btn btn-sm btn-primary">
+                    <span data-translate="signup">Sign Up</span>
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Theme toggle button -->
+        <button class="theme-toggle" id="themeToggle">
+            <i class="fas fa-moon"></i>
+        </button>
+
+        <!-- Language selector -->
+        <div class="language-switcher">
+            <select id="languageSelect" class="form-select form-select-sm">
+                <option value="en">🇺🇸 English</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="hi">🇮🇳 हिन्दी</option>
+                <option value="mr">🇮🇳 मराठी</option>
+            </select>
+            <div class="spinner-border spinner-border-sm d-none" id="langSpinner"></div>
+        </div>
+    </header>
+
     <div class="container py-5">
-        <style>
-            .hero-title {
-                text-align: center;
-                margin: 3rem 0 2rem;
-                padding: 2rem 1rem;
-                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-                border-radius: 16px;
-                position: relative;
-                overflow: hidden;
-            }
-        
-            .hero-title::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 4px;
-                background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
-            }
-        
-            .hero-title h1 {
-                font-size: 2.75rem;
-                color: #1e293b;
-                margin: 0 0 1rem;
-                font-weight: 800;
-                letter-spacing: -0.025em;
-                line-height: 1.2;
-                font-family: 'Inter', system-ui, sans-serif;
-                background: linear-gradient(45deg, #1e293b 30%, #475569 100%);
-                -webkit-background-clip: text;
-                background-clip: text;
-                -webkit-text-fill-color: transparent;
-                position: relative;
-            }
-        
-            .hero-title .catchphrase {
-                color: #64748b;
-                font-size: 1.15rem;
-                max-width: 600px;
-                margin: 0 auto;
-                font-family: 'Inter', system-ui, sans-serif;
-                font-weight: 500;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.75rem;
-            }
-        
-            .hero-title .catchphrase::before,
-            .hero-title .catchphrase::after {
-                content: '';
-                width: 30px;
-                height: 2px;
-                background: #cbd5e1;
-            }
-        
-            @media (max-width: 768px) {
-                .hero-title {
-                    margin: 2rem 0;
-                    padding: 1.5rem 1rem;
-                }
-                
-                .hero-title h1 {
-                    font-size: 2rem;
-                    line-height: 1.3;
-                }
-                
-                .hero-title .catchphrase {
-                    font-size: 1rem;
-                    flex-wrap: wrap;
-                }
-                
-                .hero-title .catchphrase::before,
-                .hero-title .catchphrase::after {
-                    display: none;
-                }
-            }
-        </style>
-        
         <div class="hero-title">
             <h1>
                 {% if video_title != "Untitled Video" %}
                     {{ video_title }}
                 {% else %}
                     <span style="background: linear-gradient(45deg, #6366f1 0%, #4f46e5 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-                        Smart Learning Cards ✨
+                        <span data-translate="smart_learning_cards">Smart Learning Cards</span> ✨
                     </span>
                 {% endif %}
             </h1>
             <div class="catchphrase">
-                <span>Flip to discover knowledge</span>
+                <span data-translate="flip_to_discover">Flip to discover knowledge</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lightbulb" viewBox="0 0 16 16">
                     <path d="M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13h-5a.5.5 0 0 1-.46-.302l-.761-1.77a2 2 0 0 0-.453-.618A5.98 5.98 0 0 1 2 6m3 8.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1l-.35.003a2.5 2.5 0 0 1-.486.053 9 9 0 0 1-.594.01q-.206-.005-.394-.01a2.5 2.5 0 0 1-.486-.053L5.5 15a.5.5 0 0 1-.5-.5"/>
                 </svg>
-                <span>Generated from your video content</span>
+                <span data-translate="generated_from_video">Generated from your video content</span>
             </div>
         </div>
         <div class="flashcard-grid">
@@ -201,14 +469,14 @@
                 <div class="flashcard-inner">
                     <div class="flashcard-front">
                         <div class="counter">{{ loop.index }}</div>
-                        <div>{{ card.front }}</div>
+                        <div class="card-content" data-card-id="{{ loop.index }}" data-card-side="front">{{ card.front }}</div>
                     </div>
                     <div class="flashcard-back">
-                        <div class="mb-2">{{ card.back }}</div>
+                        <div class="mb-2 card-content" data-card-id="{{ loop.index }}" data-card-side="back">{{ card.back }}</div>
                         {% if card.example %}
                         <div class="example">
-                            <div class="fw-bold">Example</div>
-                            {{ card.example }}
+                            <div class="fw-bold" data-translate="example">Example</div>
+                            <div class="card-content" data-card-id="{{ loop.index }}" data-card-side="example">{{ card.example }}</div>
                         </div>
                         {% endif %}
                     </div>
@@ -217,5 +485,229 @@
             {% endfor %}
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            if (theme === 'dark') {
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+            } else {
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+            }
+        }
+        
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        setTheme(savedTheme);
+        
+        // Toggle theme on button click
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        // TRANSLATION SYSTEM
+        let currentLang = localStorage.getItem('selectedLang') || 'en';
+        let translationCache = JSON.parse(localStorage.getItem('translationCache') || '{}');
+
+        function debounce(func, timeout = 500) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+
+        const translateContent = debounce(async (targetLang) => {
+            const select = document.getElementById('languageSelect');
+            const spinner = document.getElementById('langSpinner');
+            
+            try {
+                select.disabled = true;
+                spinner.classList.remove('d-none');
+                
+                // Special handling for English - no need to call the translation API
+                if (targetLang === 'en') {
+                    // Restore original content for UI elements
+                    document.querySelectorAll('[data-translate]').forEach(el => {
+                        const original = el.dataset.original;
+                        if (original) {
+                            if(el.tagName === 'INPUT') {
+                                el.placeholder = original;
+                            } else {
+                                el.textContent = original;
+                            }
+                        }
+                    });
+                    
+                    // Restore original content for flashcards
+                    document.querySelectorAll('.card-content').forEach(el => {
+                        const original = el.dataset.original;
+                        if (original) {
+                            el.textContent = original;
+                        }
+                    });
+                    
+                    // Update language settings
+                    currentLang = 'en';
+                    localStorage.setItem('selectedLang', 'en');
+                    document.documentElement.lang = 'en';
+                    
+                    return; // Exit early, no need to call the translation API
+                }
+                
+                // For languages other than English, proceed with normal translation
+                currentLang = targetLang;
+                
+                // Process UI elements with data-translate
+                const elements = document.querySelectorAll('[data-translate]');
+                const batch = {};
+
+                elements.forEach(el => {
+                    // Always use the original text if available, otherwise get current text
+                    const key = el.dataset.translate;
+                    const text = el.dataset.original || el.textContent.trim() || el.placeholder;
+                    if(text) {
+                        // Always store original text
+                        el.dataset.original = text;
+                        batch[key] = text;
+                    }
+                });
+
+                // Process ALL flashcard content - both front and back sides
+                const cardContents = document.querySelectorAll('.card-content');
+                cardContents.forEach(el => {
+                    const cardId = el.dataset.cardId;
+                    const cardSide = el.dataset.cardSide;
+                    // Always use the original text if available, otherwise get current text
+                    const text = el.dataset.original || el.textContent.trim();
+                    if(text) {
+                        // Always store original text
+                        el.dataset.original = text;
+                        // Create a unique key for each flashcard content
+                        const key = `card_${cardId}_${cardSide}`;
+                        batch[key] = text;
+                    }
+                });
+
+                // Filter out what needs translation (not in cache)
+                const needsTranslation = Object.entries(batch)
+                    .filter(([key, text]) => !translationCache[`${targetLang}:${text}`])
+                    .reduce((acc, [key, text]) => ({ ...acc, [key]: text }), {});
+
+                if(Object.keys(needsTranslation).length > 0) {
+                    const response = await fetch('/translate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: needsTranslation,
+                            target_lang: targetLang
+                        })
+                    });
+                    
+                    const newTranslations = await response.json().catch(() => ({}));
+                    
+                    Object.entries(newTranslations).forEach(([key, trans]) => {
+                        const original = batch[key];
+                        translationCache[`${targetLang}:${original}`] = trans || original;
+                    });
+                    
+                    localStorage.setItem('translationCache', JSON.stringify(translationCache));
+                }
+
+                // Update UI elements
+                elements.forEach(el => {
+                    const key = el.dataset.translate;
+                    const original = el.dataset.original;
+                    if (original) {
+                        const cacheKey = `${targetLang}:${original}`;
+                        
+                        if(translationCache[cacheKey]) {
+                            if(el.tagName === 'INPUT') {
+                                el.placeholder = translationCache[cacheKey];
+                            } else {
+                                el.textContent = translationCache[cacheKey];
+                            }
+                        }
+                    }
+                });
+
+                // Update ALL flashcard content
+                cardContents.forEach(el => {
+                    const original = el.dataset.original;
+                    if (original) {
+                        const cacheKey = `${targetLang}:${original}`;
+                        
+                        if(translationCache[cacheKey]) {
+                            el.textContent = translationCache[cacheKey];
+                        }
+                    }
+                });
+
+                localStorage.setItem('selectedLang', targetLang);
+                document.documentElement.lang = targetLang;
+
+            } catch (error) {
+                console.error('Translation error:', error);
+            } finally {
+                select.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        });
+
+        // Initialize language with more reliable approach
+        document.addEventListener('DOMContentLoaded', () => {
+            const langSelect = document.getElementById('languageSelect');
+            langSelect.value = currentLang;
+            
+            // Store original content for all cards immediately and ensure it's only done once
+            document.querySelectorAll('.card-content').forEach(el => {
+                if (!el.dataset.original) {
+                    el.dataset.original = el.textContent.trim();
+                }
+            });
+            
+            // Add event listeners to all flashcards
+            document.querySelectorAll('.flashcard').forEach(card => {
+                card.addEventListener('click', () => {
+                    // After flip, ensure translations are applied
+                    if (currentLang !== 'en') {
+                        setTimeout(() => {
+                            // Get all content elements inside this specific card
+                            const cardContents = card.querySelectorAll('.card-content');
+                            cardContents.forEach(el => {
+                                const original = el.dataset.original;
+                                if (original) {
+                                    const cacheKey = `${currentLang}:${original}`;
+                                    if (translationCache[cacheKey]) {
+                                        el.textContent = translationCache[cacheKey];
+                                    }
+                                }
+                            });
+                        }, 300);
+                    }
+                });
+            });
+            
+            langSelect.addEventListener('change', (e) => {
+                translateContent(e.target.value);
+            });
+            
+            if(currentLang !== 'en') {
+                // Small delay to ensure DOM is fully ready before translation
+                setTimeout(() => {
+                    translateContent(currentLang);
+                }, 100);
+            }
+        });
+    </script>
 </body>
 </html>

@@ -9,3 +9,5 @@ venv/
 app.log
 .hypothesis/
 *.hypothesis/
+.vscode/
+*.vscode/

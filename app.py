@@ -462,19 +462,23 @@ def generate_summary(transcript):
         genai.configure(api_key=api_key)
         
         # Truncate transcript to prevent API overload
-        truncated_transcript = transcript[:3000]  # Keep within model limits
+        truncated_transcript = transcript[:3000]  
         
         prompt = f"""Generate video summary in STRICT JSON format:
         {{
             "overview": "3-5 sentence paragraph summary",
             "key_points": [
-                "**Concept 1**: Explanation",
-                "**Concept 2**: Explanation"
+                {{
+                    "concept": "Name of concept",
+                    "explanation": "Short explanation of the concept"
+                }},
+                ...
             ]
         }}
         Transcript: {truncated_transcript}"""
 
-        model = genai.GenerativeModel("gemini-1.5-pro-latest")
+
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
         response = model.generate_content(prompt)
         raw_response = response.text
 
