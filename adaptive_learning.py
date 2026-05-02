@@ -275,14 +275,14 @@ class LearningAnalyzer:
     def _generate_diagram(self, concept):
         """Generate visual representation using AI"""
         prompt = f"Create a text-based diagram explaining: {concept}"
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
         response = model.generate_content(prompt)
         return response.text
 
     def _generate_visual_summary(self, text):
         """Generate visual summary using AI"""
         prompt = f"Convert this summary to visual elements:\n{text}"
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
         response = model.generate_content(prompt)
         return response.text
     
@@ -358,7 +358,7 @@ class LearningAnalyzer:
         Content: {transcript[:3000]}
         Answer ONLY with the difficulty level."""
         
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
         response = model.generate_content(prompt)
         return response.text.strip().lower()
     

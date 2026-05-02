@@ -26,6 +26,8 @@ from pathlib import Path
 from adaptive_learning import EnhancedMemoryModel, ABTestManager, LearningAnalyzer, MemoryModel
 from learning_analyzer import ConceptAnalyzer
 from flask_login import LoginManager, current_user
+import yt_dlp
+import logging
 
 services_dir = str(Path(__file__).parent / "services")
 if services_dir not in sys.path:
@@ -82,43 +84,66 @@ def handle_temp_key():
         session['temp_key'] = request.form['temp_key']
     return redirect(url_for('index'))
 
-def get_transcript(url):
-    """Robust YouTube transcript fetcher with validation"""
-    try:
-        video_id = extract.video_id(url)
-        logging.debug(f"Fetching transcript for: {video_id}")
-        
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        
-        try:
-            transcript = transcript_list.find_manually_created_transcript(['en'])
-        except NoTranscriptFound:
-            transcript = transcript_list.find_generated_transcript(['en'])
-            
-        raw_transcript = transcript.fetch()
-        
-        # Validate transcript structure
-        if not raw_transcript:
-            raise ValueError("Empty transcript received")
-            
-        if not isinstance(raw_transcript, list) or not all(
-            isinstance(item, dict) and 'text' in item 
-            for item in raw_transcript
-        ):
-            error_msg = f"Invalid transcript format. First item: {raw_transcript[0]!r}"
-            logging.error(error_msg)
-            raise ValueError(error_msg)
-            
-        #logging.debug(f"Transcript list: {transcript_list}")
-        logging.debug(f"Transcript type: {type(transcript)}")
-        logging.debug(f"First item type: {type(raw_transcript[0])}")
-        
-        return " ".join([item['text'] for item in raw_transcript])
 
-    except NoTranscriptFound:
-        raise Exception("No English subtitles available for this video")
+def get_transcript(url):
+    """
+    Final robust version using yt-dlp to bypass XML/ParseErrors.
+    """
+    try:
+        logging.debug(f"Fetching transcript for URL: {url}")
+        
+        ydl_opts = {
+            'skip_download': True,
+            'writesubtitles': True,
+            'writeautomaticsub': True,
+            'subtitleslangs': ['en'],
+            'quiet': True,
+            'no_warnings': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            
+            # 1. Try to find English captions (manual or auto)
+            subtitles = info.get('subtitles', {}).get('en') or \
+                        info.get('automatic_captions', {}).get('en')
+            
+            if not subtitles:
+                raise Exception("No English subtitles found for this video.")
+            
+            # 2. Prefer 'json3' format to avoid the ParseError (XML) you are seeing
+            subtitle_url = None
+            for s in subtitles:
+                if s.get('ext') == 'json3':
+                    subtitle_url = s.get('url')
+                    break
+            
+            # Fallback to first available if json3 isn't there
+            if not subtitle_url:
+                subtitle_url = subtitles[0].get('url')
+
+            # 3. Download the actual text
+            response = requests.get(subtitle_url, timeout=10)
+            response.raise_for_status()
+            
+            # 4. If it's JSON, parse it properly
+            if 'json' in subtitle_url or 'json3' in subtitle_url:
+                data = response.json()
+                transcript = " ".join([
+                    seg['utf8'] 
+                    for event in data.get('events', []) 
+                    if 'segs' in event 
+                    for seg in event['segs'] 
+                    if 'utf8' in seg
+                ])
+            else:
+                # If it's plain text or VTT
+                transcript = response.text
+
+            return transcript.strip()
+
     except Exception as e:
-        logging.error(f"Transcript Error: {str(e)}", exc_info=True)
+        logging.error(f"Transcript extraction error: {str(e)}")
         raise Exception(f"Could not fetch transcript: {str(e)}")
     
 def analyze_feature_preference(user_id):
@@ -220,7 +245,7 @@ Follow these rules STRICTLY:
 {previous_questions_text}
 Random seed: {random_seed}..."""
 
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
         response = model.generate_content(prompt)
         raw_response = response.text
 
@@ -478,7 +503,7 @@ def generate_summary(transcript):
         Transcript: {truncated_transcript}"""
 
 
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
         response = model.generate_content(prompt)
         raw_response = response.text
 
@@ -541,7 +566,7 @@ def generate_flashcards(transcript):
         }
         ONLY RETURN VALID JSON! No markdown or extra text!"""
 
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
         response = model.generate_content(prompt + transcript)
         raw_response = response.text
         

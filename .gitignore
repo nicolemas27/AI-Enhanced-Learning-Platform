@@ -11,3 +11,4 @@ app.log
 *.hypothesis/
 .vscode/
 *.vscode/
+check_models.py
