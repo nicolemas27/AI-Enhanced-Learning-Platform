@@ -1,76 +1,371 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="container">
     <h2 class="my-4">Admin Dashboard</h2>
 
-    <!-- Key Metrics Row -->
+    <!-- ── Key Metrics Row ─────────────────────────────────────────── -->
     <div class="row mb-4">
-        <!-- Total Users -->
         <div class="col-md-6 mb-3">
             <div class="card text-center bg-primary text-white">
                 <div class="card-body">
                     <h5>Total Users</h5>
-                    <div class="display-4">{{ user_stats.total_users|default(0) }}</div>
+                    <div class="display-4">
+                        {{ user_stats.total_users|default(0) }}
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Active Users -->
         <div class="col-md-6 mb-3">
             <div class="card text-center bg-success text-white">
                 <div class="card-body">
                     <h5>Weekly Active</h5>
-                    <div class="display-4">{{ user_stats.weekly_active|default(0) }}</div>
+                    <div class="display-4">
+                        {{ user_stats.weekly_active|default(0) }}
+                    </div>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- Feature Usage Chart -->
+    <!-- ── Feature Usage Chart ─────────────────────────────────────── -->
     <div class="card mt-4">
-        <div class="card-header">
-            <h5>Feature Usage (Last 7 Days)</h5>
-        </div>
+        <div class="card-header"><h5>Feature Usage (Last 7 Days)</h5></div>
         <div class="card-body">
             <canvas id="featureUsageChart"></canvas>
         </div>
     </div>
 
-    <!-- Model Performance -->
+    <!-- ── Model Performance ───────────────────────────────────────── -->
     <div class="card mt-4">
-        <div class="card-header">
-            <h5>Model Performance</h5>
-        </div>
+        <div class="card-header"><h5>Model Performance</h5></div>
         <div class="card-body">
             <div class="row">
-                {% if user_stats.model_performance %}
-                    {% for type, stats in user_stats.model_performance.items() %}
-                    <div class="col-md-4 mb-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h6>{{ type|title }}</h6>
-                                <div class="display-4">{{ stats.success_rate|default(0)|round(1) }}%</div>
-                                <small class="text-muted">{{ stats.total|default(0) }} requests</small>
+                {% if user_stats.model_performance %} {% for type, stats in
+                user_stats.model_performance.items() %}
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h6>{{ type|title }}</h6>
+                            <div class="display-4">
+                                {{ stats.success_rate|default(0)|round(1) }}%
                             </div>
+                            <small class="text-muted"
+                                >{{ stats.total|default(0) }} requests</small
+                            >
                         </div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="col-12">
-                        <div class="alert alert-info">No model performance data available</div>
+                </div>
+                {% endfor %} {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        No model performance data available
                     </div>
+                </div>
                 {% endif %}
             </div>
         </div>
-        
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- RESEARCH ANALYTICS SECTION                                     -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <hr class="my-5" />
+    <h3 class="mb-1 fw-bold">
+        <i class="fas fa-flask text-primary me-2"></i>Research Analytics
+    </h3>
+    <p class="text-muted mb-4">
+        Experiment results, memory model evaluation, and learner ability
+        distribution. All statistics use Holm–Bonferroni correction and
+        O'Brien–Fleming alpha spending.
+    </p>
+
+    <!-- ── 1. A/B Experiment Results ──────────────────────────────── -->
+    <div class="card mt-3">
+        <div
+            class="card-header d-flex justify-content-between align-items-center"
+        >
+            <h5 class="mb-0">
+                <i class="fas fa-vials me-2 text-primary"></i>A/B Experiment
+                Results
+            </h5>
+            <span class="badge bg-secondary">Holm–Bonferroni corrected</span>
+        </div>
+        <div class="card-body">
+            {% if ab_experiments %} {% for exp in ab_experiments %}
+            <div class="mb-5">
+                <h6 class="fw-bold mb-3">{{ exp.name }}</h6>
+
+                {% if exp.methodology_note %}
+                <div
+                    class="alert alert-light border-start border-4 border-primary py-2 mb-3 small"
+                >
+                    <i class="fas fa-info-circle me-1 text-primary"></i>{{
+                    exp.methodology_note }}
+                </div>
+                {% endif %}
+
+                <div class="table-responsive">
+                    <table
+                        class="table table-bordered table-hover align-middle text-center"
+                    >
+                        <thead class="table-light">
+                            <tr>
+                                <th>Group</th>
+                                <th>N</th>
+                                <th>Mean Score</th>
+                                <th>
+                                    p-value
+                                    <small class="text-muted">(adj)</small>
+                                </th>
+                                <th>Cohen's d</th>
+                                <th>Effect Size</th>
+                                <th>Required N</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in exp.groups %}
+                            <tr
+                                class="{{ 'table-warning' if g.underpowered else '' }}"
+                            >
+                                <td class="fw-semibold">{{ g.label }}</td>
+                                <td>{{ g.n }}</td>
+                                <td>
+                                    <div
+                                        class="d-flex align-items-center justify-content-center gap-2"
+                                    >
+                                        {{ "%.2f"|format(g.mean_score) }}
+                                        <div
+                                            class="progress"
+                                            style="width: 60px; height: 6px"
+                                        >
+                                            <div
+                                                class="progress-bar bg-primary"
+                                                style="width:{{ [g.mean_score * 100, 100]|min }}%"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if g.p_value_adjusted is not none %}
+                                    <span
+                                        class="badge {{ 'bg-success' if g.p_value_adjusted < 0.05 else 'bg-secondary' }}"
+                                    >
+                                        {{ "%.4f"|format(g.p_value_adjusted) }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if g.cohens_d is not none %} {{
+                                    "%.3f"|format(g.cohens_d) }} {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set mag = g.effect_magnitude|default('')
+                                    %}
+                                    <span
+                                        class="badge {% if mag == 'large' %}bg-success {% elif mag == 'medium' %}bg-primary {% elif mag == 'small' %}bg-info {% else %}bg-secondary{% endif %}"
+                                    >
+                                        {{ mag|capitalize if mag else '—' }}
+                                    </span>
+                                </td>
+                                <td>{{ g.recommended_n|default('—') }}</td>
+                                <td>
+                                    {% if g.underpowered %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i
+                                            class="fas fa-exclamation-triangle me-1"
+                                        ></i
+                                        >Underpowered
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i
+                                        >Adequate
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Effect size mini chart -->
+                {% if exp.groups|length > 1 %}
+                <canvas id="effectChart_{{ loop.index }}" height="80"></canvas>
+                {% endif %}
+            </div>
+            {% if not loop.last %}
+            <hr />
+            {% endif %} {% endfor %} {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No experiment data yet. A/B results will appear here once
+                experiments have enough participants.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── 2. Memory Model Comparison ─────────────────────────────── -->
+    <div class="card mt-4">
+        <div
+            class="card-header d-flex justify-content-between align-items-center"
+        >
+            <h5 class="mb-0">
+                <i class="fas fa-brain me-2 text-success"></i>Memory Model
+                Comparison
+            </h5>
+            <span class="badge bg-secondary">Lower MAE = better</span>
+        </div>
+        <div class="card-body">
+            {% if model_comparison %}
+            <div class="row align-items-center">
+                <div class="col-md-5">
+                    <canvas id="modelComparisonChart" height="200"></canvas>
+                </div>
+                <div class="col-md-7">
+                    <table
+                        class="table table-bordered align-middle text-center"
+                    >
+                        <thead class="table-light">
+                            <tr>
+                                <th>Model</th>
+                                <th>
+                                    MAE <small class="text-muted">(%)</small>
+                                </th>
+                                <th>
+                                    RMSE <small class="text-muted">(%)</small>
+                                </th>
+                                <th>Predictions</th>
+                                <th>Winner</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in model_comparison.models %}
+                            <tr
+                                class="{{ 'table-success' if m.is_best else '' }}"
+                            >
+                                <td class="fw-semibold">{{ m.name }}</td>
+                                <td>{{ "%.2f"|format(m.mae) }}</td>
+                                <td>{{ "%.2f"|format(m.rmse) }}</td>
+                                <td>{{ m.n_predictions }}</td>
+                                <td>
+                                    {% if m.is_best %}
+                                    <i class="fas fa-trophy text-warning"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <p class="text-muted small mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        MAE = Mean Absolute Error between predicted and actual
+                        retention percentage at review time. Evaluated on
+                        held-out quiz attempts only.
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Model comparison will appear after users complete at least 5
+                quiz sessions.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── 3. IRT Learner Ability Distribution ────────────────────── -->
+    <div class="card mt-4 mb-5">
+        <div
+            class="card-header d-flex justify-content-between align-items-center"
+        >
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2 text-info"></i>Learner Ability
+                Distribution (IRT θ)
+            </h5>
+            <span class="badge bg-secondary">3PL Item Response Theory</span>
+        </div>
+        <div class="card-body">
+            {% if irt_distribution %}
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <canvas id="irtHistogram" height="160"></canvas>
+                </div>
+                <div class="col-md-4">
+                    <ul class="list-group list-group-flush">
+                        <li
+                            class="list-group-item d-flex justify-content-between"
+                        >
+                            <span>Mean θ</span>
+                            <strong
+                                >{{ "%.3f"|format(irt_distribution.mean_theta)
+                                }}</strong
+                            >
+                        </li>
+                        <li
+                            class="list-group-item d-flex justify-content-between"
+                        >
+                            <span>Std Dev</span>
+                            <strong
+                                >{{ "%.3f"|format(irt_distribution.std_theta)
+                                }}</strong
+                            >
+                        </li>
+                        <li
+                            class="list-group-item d-flex justify-content-between"
+                        >
+                            <span>Users Assessed</span>
+                            <strong>{{ irt_distribution.n_users }}</strong>
+                        </li>
+                        <li
+                            class="list-group-item d-flex justify-content-between"
+                        >
+                            <span>High Ability <small>(θ &gt; 1)</small></span>
+                            <strong class="text-success"
+                                >{{ irt_distribution.pct_high }}%</strong
+                            >
+                        </li>
+                        <li
+                            class="list-group-item d-flex justify-content-between"
+                        >
+                            <span>Low Ability <small>(θ &lt; −1)</small></span>
+                            <strong class="text-danger"
+                                >{{ irt_distribution.pct_low }}%</strong
+                            >
+                        </li>
+                    </ul>
+                    <p class="text-muted small mt-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        θ is estimated via 3PL IRT using each user's full
+                        response history. θ = 0 represents average ability;
+                        range typically −3 to +3.
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                IRT ability estimates will appear after users complete enough
+                quiz attempts for calibration.
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
+<!-- /.container -->
 
+<!-- ── Scripts ─────────────────────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Feature Usage Chart
     document.addEventListener('DOMContentLoaded', function() {
+
+        // ── Feature Usage Chart ──────────────────────────────────────────
         new Chart(document.getElementById('featureUsageChart'), {
             type: 'bar',
             data: {
@@ -93,18 +388,153 @@
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: true }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 }
-                    }
-                }
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
             }
         });
+
+        // ── A/B Effect Size Bar Charts ───────────────────────────────────
+        {% if ab_experiments %}
+        {% for exp in ab_experiments %}
+        {% if exp.groups|length > 1 %}
+        (function() {
+            const labels = {{ exp.groups | map(attribute='label') | list | tojson }};
+            const ds = {{ exp.groups | map(attribute='cohens_d') | list | tojson }};
+            const colors = ds.map(d => {
+                if (d === null) return 'rgba(100,116,139,0.5)';
+                const abs = Math.abs(d);
+                if (abs >= 0.8) return 'rgba(28,200,138,0.8)';
+                if (abs >= 0.5) return 'rgba(78,115,223,0.8)';
+                return 'rgba(54,185,204,0.8)';
+            });
+            new Chart(document.getElementById('effectChart_{{ loop.index }}'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Cohen's d (effect size vs control)",
+                        data: ds,
+                        backgroundColor: colors,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const v = ctx.parsed.y;
+                                    if (v === null) return 'No data';
+                                    const mag = Math.abs(v) >= 0.8 ? 'Large' : Math.abs(v) >= 0.5 ? 'Medium' : 'Small';
+                                    return `d = ${v !== null ? v.toFixed(3) : '—'} (${mag})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: "Cohen's d" },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    }
+                }
+            });
+        })();
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+
+        // ── Model Comparison Chart ───────────────────────────────────────
+        {% if model_comparison %}
+        (function() {
+            const models = {{ model_comparison.models | map(attribute='name') | list | tojson }};
+            const maes   = {{ model_comparison.models | map(attribute='mae')  | list | tojson }};
+            const rmses  = {{ model_comparison.models | map(attribute='rmse') | list | tojson }};
+            new Chart(document.getElementById('modelComparisonChart'), {
+                type: 'bar',
+                data: {
+                    labels: models,
+                    datasets: [
+                        {
+                            label: 'MAE (%)',
+                            data: maes,
+                            backgroundColor: 'rgba(78,115,223,0.8)',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'RMSE (%)',
+                            data: rmses,
+                            backgroundColor: 'rgba(246,194,62,0.8)',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Error (%)' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    }
+                }
+            });
+        })();
+        {% endif %}
+
+        // ── IRT Ability Histogram ────────────────────────────────────────
+        {% if irt_distribution %}
+        (function() {
+            const bins   = {{ irt_distribution.bins   | tojson }};
+            const counts = {{ irt_distribution.counts | tojson }};
+            new Chart(document.getElementById('irtHistogram'), {
+                type: 'bar',
+                data: {
+                    labels: bins,
+                    datasets: [{
+                        label: 'Number of Learners',
+                        data: counts,
+                        backgroundColor: counts.map((_, i) => {
+                            const mid = bins.length / 2;
+                            if (i < mid * 0.33)       return 'rgba(239,68,68,0.7)';
+                            else if (i > mid * 1.66)  return 'rgba(28,200,138,0.7)';
+                            else                       return 'rgba(78,115,223,0.7)';
+                        }),
+                        borderRadius: 4,
+                        barPercentage: 0.95
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: ctx => `θ bin: ${ctx[0].label}`,
+                                label: ctx => `${ctx.parsed.y} learners`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Ability (θ)' },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Learners' },
+                            ticks: { precision: 0 }
+                        }
+                    }
+                }
+            });
+        })();
+        {% endif %}
+
     });
 </script>
 {% endblock %}

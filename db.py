@@ -3,7 +3,7 @@ from flask import request, session
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 
 load_dotenv()
@@ -27,6 +27,9 @@ class Database:
         self.users = self.db.users
 
     def connect(self):
+        # FIX: guard so calling connect() twice doesn't open a second MongoClient
+        if self.client is not None:
+            return
         try:
             self.client = MongoClient(self.uri)
             self.db = self.client.get_database("quiz_app")
@@ -39,15 +42,16 @@ class Database:
     def _create_indexes(self):
         # TTL Indexes
         self.db.temp_content.create_index(
-            "created_at", 
+            "created_at",
             expireAfterSeconds=259200  # 3 days
         )
+
         self.db.learning_activities.create_index([
-        ("user_id", 1),
-        ("activity_type", 1),
-        ("timestamp", -1)
-    ])
-    
+            ("user_id", 1),
+            ("activity_type", 1),
+            ("timestamp", -1)
+        ])
+
         self.db.user_progress.create_index([
             ("user_id", 1),
             ("timestamp", -1)
@@ -58,11 +62,11 @@ class Database:
             name="attempt_expiration",
             expireAfterSeconds=86400  # 24 hours
         )
-        
+
         self.db.user_progress.create_index(
             [("weak_concepts", 1)]
         )
-        
+
         # Research Metrics Indexes
         self.db.research_metrics.create_index([
             ("event_type", 1),
@@ -72,14 +76,20 @@ class Database:
             ("user_id", 1),
             ("event_type", 1)
         ])
-        
+        # FIX: added (user_id, event_type, timestamp) compound index — most queries filter all three
+        self.db.research_metrics.create_index([
+            ("user_id", 1),
+            ("event_type", 1),
+            ("timestamp", -1)
+        ])
+
         # Content Indexes
         self.db.temp_content.create_index("type")
         self.db.temp_content.create_index([
             ("type", 1),
             ("created_at", -1)
         ])
-        
+
         # Learning Analytics Indexes
         self.db.learning_activities.create_index([
             ("user_id", 1),
@@ -92,7 +102,7 @@ class Database:
             ('attempts.timestamp', -1)
         ])
         self.db.video_progress.create_index([
-            ('user_id', 1), 
+            ('user_id', 1),
             ('aggregates.mastery_level', 1)
         ])
 
@@ -100,20 +110,16 @@ class Database:
             ('attempts.status', 1),
             ('attempts.timestamp', 1)
         ])
-        
+
         # Concept Mastery Indexes
         self.db.concept_mastery.create_index([
             ("user_id", 1),
             ("concept", 1),
             ("score", -1)
         ], name="user_concept_mastery", partialFilterExpression={"score": {"$exists": True}})
-        
+
         # User Progress Indexes
         self.db.user_progress.create_index([
-            ("user_id", 1),
-            ("timestamp", -1)
-        ])
-        self.db.video_progress.create_index([
             ('user_id', 1),
             ('video_id', 1)
         ], name='user_video_progress')
@@ -122,12 +128,11 @@ class Database:
             ('aggregates.mastery_level', 1),
             ('aggregates.last_attempt', -1)
         ], name='mastery_tracking')
-        
+
         self.db.user_progress.create_index([("user_id", 1)], unique=True)
-        
+
         # User Management
         self.db.users.create_index("email", unique=True)
-        self.db.research_metrics.create_index([("event_type", 1), ("timestamp", -1)])
         self.db.research_metrics.create_index([("metadata.predicted_score", 1)])
         self.db.research_metrics.create_index([("metadata.actual_score", 1)])
 
@@ -165,6 +170,12 @@ class Database:
 
     def track_learning_activity(self, user_id, activity_type, metadata):
         try:
+            # FIX: request may not be available outside Flask request context
+            try:
+                user_agent = request.headers.get('User-Agent', 'unknown')
+            except RuntimeError:
+                user_agent = 'unknown'
+
             return self.db.learning_activities.insert_one({
                 "user_id": user_id,
                 "type": activity_type,
@@ -172,23 +183,23 @@ class Database:
                     **metadata,
                     "timestamp": datetime.utcnow(),
                     "platform": "web",
-                    "user_agent": request.headers.get('User-Agent', 'unknown')
+                    "user_agent": user_agent
                 },
                 "performance_metrics": {
                     "score": metadata.get('score'),
                     "total": metadata.get('total'),
-                    "accuracy": metadata.get('percentage')/100 if metadata.get('percentage') else None
+                    "accuracy": metadata.get('percentage') / 100 if metadata.get('percentage') else None
                 }
             })
         except Exception as e:
             logging.error(f"LEARNING ACTIVITY TRACKING FAILED: {str(e)}")
             logging.error(f"Failed data: {metadata}")
-            raise  # Re-raise to see error in development
+            raise
 
     def log_research_event(self, event_type, metadata=None):
         if event_type not in RESEARCH_EVENTS:
             raise ValueError(f"Invalid event type. Allowed: {RESEARCH_EVENTS}")
-        
+
         return self.db.research_metrics.insert_one({
             "timestamp": datetime.utcnow(),
             "user_id": session.get('user_id'),
@@ -243,12 +254,11 @@ class Database:
         )
 
     def get_weak_concepts(self, user_id, threshold=5):
-        return list(self.db.concept_mastery.find(
-            {"user_id": user_id, "score": {"$lt": threshold}},
-            {"_id": 0, "concept": 1}
-        ).distinct("concept"))
+        return self.db.concept_mastery.distinct(
+            "concept",
+            {"user_id": user_id, "score": {"$lt": threshold}}
+        )
 
-    # Additional admin dashboard methods
     def get_learning_curve_data(self, days=30):
         return self.db.user_progress.aggregate([
             {"$match": {
@@ -277,33 +287,28 @@ class Database:
                 "api_calls": {"$sum": {"$size": {"$ifNull": ["$api_log", []]}}}
             }}
         ])
-   
-    # In Database class
+
     def migrate_progress_data(self, old_user_id, new_user_id):
-            """Transfer all user data from anonymous to authenticated ID"""
-            try:
-                # List of collections containing user progress data
-                collections = [
-                    'user_progress',
-                    'research_metrics',
-                    'concept_mastery',
-                    'learning_activities',
-                    'video_progress',
-                    'temp_content'
-                ]
-                
-                for collection in collections:
-                    result = self.db[collection].update_many(
-                        {"user_id": old_user_id},
-                        {"$set": {"user_id": new_user_id}}
-                    )
-                    logging.info(f"Migrated {result.modified_count} entries in {collection}")
+        """Transfer all user data from anonymous to authenticated ID"""
+        try:
+            collections = [
+                'user_progress',
+                'research_metrics',
+                'concept_mastery',
+                'learning_activities',
+                'video_progress',
+                'temp_content'
+            ]
 
-                return True
-            except Exception as e:
-                logging.error(f"Migration failed: {str(e)}")
-                return False
+            for collection in collections:
+                result = self.db[collection].update_many(
+                    {"user_id": old_user_id},
+                    {"$set": {"user_id": new_user_id}}
+                )
+                logging.info(f"Migrated {result.modified_count} entries in {collection}")
 
-# Initialize database connection
+            return True
+        except Exception as e:
+            logging.error(f"Migration failed: {str(e)}")
+            return False
 db = Database()
-db.connect()

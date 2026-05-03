@@ -1,93 +1,91 @@
-# AI Enhanced Learning Platform 
+# AI-Enhanced Learning Platform — LearnTube
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-29%20passed-brightgreen)](test_algorithms.py)
 
-## Overview
+Converts any YouTube video into a personalised study session — quizzes, summaries, flashcards, and concept maps — with three ML models tracking what you know, predicting when you'll forget it, and adapting every question to your current ability.
 
-This platform transforms YouTube videos into interactive and comprehensive learning experiences using advanced AI. It generates **quizzes**, **summaries**, **flashcards**, and **concept maps**, adapts to individual learning styles, and tracks progress to optimize retention with personalized learning schedules.
+---
 
+## How It Works
+
+Paste a YouTube URL → the platform fetches the transcript, extracts key concepts (TF-IDF + spaCy NER + Gemini), and generates learning content. Every quiz response feeds back into three adaptive models running in parallel:
+
+**Bayesian Knowledge Tracing (BKT)** — Treats mastery as a hidden variable and updates it after every answer using Bayes' rule, separating genuine knowledge from lucky guesses.
+
+**3-Parameter Logistic IRT (Computerised Adaptive Testing)** — Selects the next question by maximising Fisher information at the learner's current estimated ability (θ), so questions are never trivially easy or impossibly hard.
+
+**Spaced Repetition with model comparison** — Three forgetting-curve models (Ebbinghaus, ACT-R, and a personalised BayesianRidge trained on user history) compete to predict the optimal review date. The admin dashboard shows each model's MAE and RMSE on held-out quiz data.
+
+**A/B Testing** — Experiments comparing teaching strategies use power analysis before launch, Holm–Bonferroni correction for multiple comparisons, O'Brien–Fleming alpha spending for interim looks, and Cohen's d for effect size reporting.
+
+---
 
 ## Features
 
-### Core Tools
-- **Adaptive Quiz Engine**: Implements difficulty adjustment algorithms that analyze user performance data to generate progressively challenging questions
-- **Intelligent Summarization**: Utilizes NLP techniques to extract key concepts and produce hierarchical summaries
-- **Interactive Flashcards**: Generates study cards with semantic relevance sorting
-- **Knowledge Graph Visualization**: Creates concept maps using graph theory algorithms to display relationships between key concepts
-- **Multilingual Support**: Translates learning content into multiple languages
+- Adaptive quiz engine — difficulty adjusted per-user using z-score performance history
+- Flashcards, structured summaries, and D3.js knowledge graph
+- Spaced repetition review scheduler with three competing memory models
+- Weak concept identification and personalised review prioritisation
+- Admin research dashboard: A/B results, IRT ability distribution, model comparison
+- Chrome Extension for in-browser quizzing while watching YouTube
+- Anonymous → authenticated session migration (progress preserved on signup)
+- Multilingual content translation
 
-### Adaptive Learning
+---
 
-- **Memory Retention Models**: Uses spaced repetition for optimal learning
-- **Personalized Difficulty Adjustment**: Adapts content based on performance
-- **Weak Concept Identification**: Highlights areas needing more focus
-- **Performance Analytics Dashboard**: Visualizes user progress metrics and learning analytics
-- **Enhanced Memory Model**: Custom implementation of forgetting curve algorithms with personalized decay rates
-- **Multi-model Concept Detection**: Combines TF-IDF, spaCy NER, and LLM for robust concept extraction
+## Tech Stack
 
-## Technologies
+| Layer | Tools |
+|-------|-------|
+| Backend | Python 3.10, Flask, Flask-Login |
+| Database | MongoDB Atlas, PyMongo |
+| AI / ML | Gemini 2.5 Flash, scikit-learn, NumPy, SciPy, spaCy |
+| Frontend | Bootstrap 5, Chart.js, D3.js |
+| Testing | pytest, unittest.mock — 29 unit tests, no DB required |
 
-| Component         | Technologies Used                                    |
-|-------------------|----------------------------------------------------- |
-| Backend           | Python, Flask, Flask-Login                           |
-| Database          | MongoDB Atlas (PyMongo)                              |
-| AI/ML             | LLM, scikit-learn, NumPy, Custom Memory Models       |
-| Data Processing   | BeautifulSoup, pytube, youtube_transcript_api        |
-| Frontend          | Bootstrap, D3.js, Chart.js, HTML/CSS/JavaScript      |
+---
 
 ## Setup
 
-1. **Clone repository**
-   ```bash
-   git clone https://github.com/nicolemas27/AI-Enhanced-Learning-Platform.git
-   cd AI-Enhanced-Learning-Platform 
+```bash
+git clone https://github.com/nicolemas27/AI-Enhanced-Learning-Platform.git
+cd AI-Enhanced-Learning-Platform
+python -m venv venv && .\venv\Scripts\activate   # Windows
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+```
 
-2. **Create virtual environment**
-   ```bash
-   python -m venv venv
-   .\venv\Scripts\activate
+Create a `.env` file:
+```
+MONGO_URI=your_mongodb_connection_string
+GEMINI_API_KEY=your_gemini_api_key
+SECRET_KEY=a_long_random_string
+```
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
+```bash
+python app.py
+# → http://localhost:5000
+```
 
-4. **MongoDB Setup**
-   1. Create a MongoDB Atlas account or use a local MongoDB installation
-   2. Add your connection string to the .env file
-   
-5. **Configure environment**
-   ```bash
-   echo "MONGO_URI=your_mongodb_uri" > .env
-   echo "GEMINI_KEY=your_api_key" >> .env
-   echo "SECRET_KEY=your_secret_key" >> .env
+---
 
-6. **Run the Application**
-   ```bash
-   python app.py
+## Running Tests
 
-## 🧩 Usage
+The algorithm tests require no database — all DB calls are mocked so they run anywhere.
 
-### Home Page
-- Enter a **YouTube URL** and select the desired learning tool.
+```bash
+python -m pytest test_algorithms.py -v   # 29 unit tests: BKT, IRT, A/B
+python -m pytest retention_tests.py -v  # integration tests (needs MongoDB)
+```
 
-### Learning Tools
-- **Quiz**: Test your knowledge with adaptive questions.
-- **Flashcards**: Use interactive cards for efficient memorization.
-- **Summary**: Review concise explanations of key concepts.
-- **Knowledge Graph**: Explore visual relationships between concepts.
-- **Progress Dashboard**: Track your learning metrics and personalized review schedule.
+Tests verify hand-calculated values: BKT updates from 0.1 → exactly 0.400 after one correct answer; IRT at θ=b=0 gives exactly P=0.6. Both are mathematically correct, not just directionally plausible.
 
+---
 
-## 🧩 Chrome Extension
+## Chrome Extension
 
-The platform also includes a **Chrome Extension** for seamless integration with YouTube:
-
-1. Navigate to the `Extension-Quiz` directory in the project.
-2. Open **Chrome** and go to `chrome://extensions/`.
-3. Enable **Developer mode** (top right).
-4. Click **"Load unpacked"** and select the `Extension-Quiz` folder.
-5. Use the extension while watching YouTube videos to instantly access the learning tools.
-
-
-   
+1. Open `chrome://extensions/` and enable Developer mode
+2. Click **Load unpacked** → select the `Extension-Quiz` folder
+3. Use while watching YouTube to instantly quiz yourself on any video

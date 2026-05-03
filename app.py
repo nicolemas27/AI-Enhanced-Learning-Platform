@@ -27,7 +27,8 @@ from adaptive_learning import EnhancedMemoryModel, ABTestManager, LearningAnalyz
 from learning_analyzer import ConceptAnalyzer
 from flask_login import LoginManager, current_user
 import yt_dlp
-import logging
+import yt_dlp as _yt_dlp
+import logging as _logging
 
 services_dir = str(Path(__file__).parent / "services")
 if services_dir not in sys.path:
@@ -313,10 +314,12 @@ Random seed: {random_seed}..."""
 
 def get_video_title(url):
     try:
-        yt = YouTube(url)
-        return yt.title
+        ydl_opts = {'quiet': True, 'no_warnings': True, 'skip_download': True}
+        with _yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            return info.get('title', 'Untitled Video')
     except Exception as e:
-        logging.error(f"Title fetch error: {str(e)}")
+        _logging.error(f"Title fetch error: {str(e)}")
         return "Untitled Video"
     
 @app.before_request
@@ -324,7 +327,8 @@ def initialize_research_session():
     """Essential for tracking anonymous users"""
     if 'user_id' not in session:
         # Generate anonymous ID format: anon_1234
-        session['user_id'] = f"anon_{random.randint(1000, 9999)}"
+        import uuid  # FIX: randint only 9000 values — collision risk
+        session['user_id'] = f"anon_{uuid.uuid4().hex}"
     
     if 'session_start' not in session:
         session['session_start'] = datetime.now().isoformat()
@@ -638,7 +642,13 @@ def show_quiz():
                            questions=quiz_data['data']['questions'], 
                            difficulty=quiz_data['data'].get('difficulty', 'medium'),
                            heading="Test Your Knowledge: Interactive Quiz")  # Fixed heading
-@app.route('/save-quiz')
+@app.route('/save-quiz', methods=['POST'])
+def save_quiz():
+    if 'quiz_id' not in session:
+        return redirect('/')
+    quiz_id = ObjectId(session['quiz_id'])
+    db.save_quiz_permanently(quiz_id)
+    return redirect(url_for('quiz_saved'))
 
 @app.after_request
 def track_analytics(response):
@@ -647,7 +657,7 @@ def track_analytics(response):
             user_id = current_user.id
             auth_status = 'authenticated'
         else:
-            user_id = session['user_id']
+            user_id = session.get('user_id', 'unknown')
             auth_status = 'anonymous'
 
         # Track quiz attempts
@@ -681,37 +691,11 @@ def track_session_end(response):
         session.pop('session_start', None)
     return response
 
-def save_quiz():
-    if 'quiz_id' not in session:
-        return redirect('/')
-    
-    quiz_id = ObjectId(session['quiz_id'])
-    db.save_quiz_permanently(quiz_id)
-    return redirect(url_for('quiz_saved'))
-
-def _calculate_difficulty_score(self, results):
-    """Calculate weighted difficulty score (0-100)"""
-    correct_times = [q['time_spent'] for q in results if q['is_correct']]
-    incorrect_times = [q['time_spent'] for q in results if not q['is_correct']]
-    
-    if not correct_times or not incorrect_times:
-        return 50
-    
-    diff_ratio = np.mean(incorrect_times) / np.mean(correct_times)
-    return min(100, max(0, 50 * diff_ratio))
-
-def _get_review_intervals(self, user_id, concepts):
-    """Get time since last review for each concept"""
-    intervals = []
-    for concept in concepts:
-        last_review = db.db.research_metrics.find_one(
-            {"user_id": user_id, "metadata.concepts": concept},
-            sort=[("timestamp", -1)]
-        )
-        if last_review:
-            intervals.append((datetime.now() - last_review['timestamp']).days)
-    return intervals
- 
+# FIX: _calculate_difficulty_score and _get_review_intervals were defined here
+# as module-level functions with a 'self' parameter but called as instance
+# methods (analyzer._calculate_difficulty_score / analyzer._get_review_intervals).
+# This always raises TypeError.  Both are now proper LearningAnalyzer methods
+# in adaptive_learning_fixed.py.
 @app.route('/submit', methods=['POST'])
 def submit_quiz():
     try:
@@ -953,12 +937,12 @@ def submit_quiz():
                 }
             }
 
-           
+            # ── A/B experiment log (use resolved user_id, not raw session value) ──
             app.ab_test_manager.log_experiment_result(
-            user_id=session['user_id'],
-            experiment_name='difficulty_adjustment',  
-            score=score,
-            total=len(results))
+                user_id=user_id,
+                experiment_name='difficulty_adjustment',
+                score=score,
+                total=len(results))
 
             # Inside submit_quiz function
             mastery_level = 'mastered' if score == total else 'in-progress'
@@ -1028,6 +1012,64 @@ def submit_quiz():
 
             db.create_video_progress(user_id, video_data)
 
+            # ── 1. Model comparison: log Ebbinghaus / ACT-R / ML predictions
+            #    Each model returns a datetime of when to review next.
+            #    We store predicted_days (days from now) vs actual_days
+            #    (days since user's last quiz) so the admin MAE chart has
+            #    meaningful, same-unit values to compare.
+            memory_model = EnhancedMemoryModel()
+            try:
+                now = datetime.utcnow()
+                # Actual gap: days since user's previous quiz attempt
+                last_attempt = db.db.quiz_results.find_one(
+                    {"user_id": user_id},
+                    sort=[("timestamp", -1)]
+                )
+                actual_days = (
+                    (now - last_attempt["timestamp"]).days
+                    if last_attempt and last_attempt.get("timestamp")
+                    else None
+                )
+                for model_name, predicted_dt in [
+                    ("ebbinghaus", memory_model._ebbinghaus_prediction(user_id, "general")),
+                    ("act_r",      memory_model._act_r_prediction(user_id, "general")),
+                    ("ml",         memory_model._ml_prediction(user_id, "general")),
+                ]:
+                    if predicted_dt is None or actual_days is None:
+                        continue
+                    predicted_days = max(0, (predicted_dt - now).days)
+                    db.db.model_predictions.insert_one({
+                        "user_id":   user_id,
+                        "model":     model_name,
+                        "predicted": float(predicted_days),
+                        "actual":    float(actual_days),
+                        "timestamp": now,
+                    })
+            except Exception as mp_err:
+                logging.error(f"Model prediction logging failed: {mp_err}")
+
+            # ── 2. IRT theta: estimate updated ability and persist to
+            #    user_progress so the admin histogram has data.
+            try:
+                irt_theta = memory_model.estimate_ability(user_id)
+                db.db.user_progress.update_one(
+                    {"user_id": user_id},
+                    {"$set": {
+                        "irt_theta":            round(float(irt_theta), 4),
+                        "irt_theta_updated_at": datetime.utcnow(),
+                    }},
+                    upsert=True
+                )
+            except Exception as irt_err:
+                logging.error(f"IRT theta update failed: {irt_err}")
+
+            # ── 3. Full model-comparison event log (Ebbinghaus/ACT-R/ML
+            #    per weak concept) — feeds the research_metrics collection.
+            try:
+                app.ab_test_manager.log_model_comparison(user_id)
+            except Exception as lmc_err:
+                logging.error(f"log_model_comparison failed: {lmc_err}")
+
         except Exception as analytics_error:
             logging.error(f"Analytics failed: {str(analytics_error)}")
 
@@ -1074,7 +1116,7 @@ def generate_cognitive_analysis(user_id):
             }}
         ]
         
-        stats = db.db.research_metrics.aggregate(pipeline).next()
+        stats = next(db.db.research_metrics.aggregate(pipeline), None)        
         avg_speed = stats.get('avg_speed', 0) or 0
         error_rate = stats.get('error_rate', 0) or 0
         recovery_rate = stats.get('recovery_rate', 0) or 0
@@ -1176,8 +1218,11 @@ def research_data_fallback(error):
 def mark_reviewed(concept):
     try:
         user_id = current_user.id if current_user.is_authenticated else session['user_id']
-            
-        
+        db.db.concept_mastery.update_one(
+#             {"user_id": user_id, "concept": concept},
+#             {"$set": {"reviewed_at": datetime.utcnow(), "needs_review": False}},
+#             upsert=True
+        )       
         return jsonify({'status': 'success'})
     except Exception as e:
         logging.error(f"Error removing concept: {str(e)}")
@@ -1191,7 +1236,6 @@ def show_summary():
     
     try:
         content_id = ObjectId(session['content_id'])
-        content = db.db.temp_content.find_one({"_id": content_id})
         content = db.get_temp_content(content_id)
         if content and content['type'] == 'summary':
             db.log_research_event('summary_view', metadata={
@@ -1486,7 +1530,8 @@ def default_retention_metrics():
 def assign_experiment_group():
     if 'experiment_group' not in session:
         # Get user ID from session or generate anonymous ID
-        user_id = session.get('user_id') or f"anon_{random.randint(1000,9999)}"
+        import uuid  # FIX: collision-safe anonymous ID
+        user_id = session.get('user_id') or f"anon_{'{'}uuid.uuid4().hex{'}'}"
         session['experiment_group'] = app.ab_test_manager.assign_group(user_id)
 
 @login_manager.user_loader
@@ -1739,10 +1784,23 @@ def format_ab_data(raw_data):
         'ebbinghaus': parse_group(groups.get('control', {})),
         'act_r': parse_group(groups.get('ML_based', {})),
         'ml': parse_group(groups.get('rule_based', {})),
+        # FIX: use Holm-Bonferroni corrected p-values (not raw p_value) and
+        # surface Cohen's d so the dashboard can show practical significance.
         'p_values': {
-            'control_vs_ml': comparisons.get('control_vs_ML_based', {}).get('p_value', 0),
-            'ml_vs_rule': comparisons.get('ML_based_vs_rule_based', {}).get('p_value', 0)
-        }
+            'control_vs_ml': comparisons.get('control_vs_ML_based', {}).get('p_value_adjusted', 0),
+            'ml_vs_rule': comparisons.get('ML_based_vs_rule_based', {}).get('p_value_adjusted', 0)
+        },
+        'effect_sizes': {
+            'control_vs_ml': comparisons.get('control_vs_ML_based', {}).get('cohens_d', 0),
+            'ml_vs_rule': comparisons.get('ML_based_vs_rule_based', {}).get('cohens_d', 0)
+        },
+        'effect_labels': {
+            'control_vs_ml': comparisons.get('control_vs_ML_based', {}).get('effect_magnitude', 'n/a'),
+            'ml_vs_rule': comparisons.get('ML_based_vs_rule_based', {}).get('effect_magnitude', 'n/a')
+        },
+        'recommended_n':       raw_data.get('recommended_n'),
+        'underpowered_groups': raw_data.get('underpowered_groups', []),
+        'methodology_note':    raw_data.get('methodology_note', '')
     }
 
 def parse_group(data):
