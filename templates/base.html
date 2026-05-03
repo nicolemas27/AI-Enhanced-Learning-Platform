@@ -259,6 +259,13 @@
                     <span data-translate="signup">Sign Up</span>
                 </a>
             {% endif %}
+
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('auth.settings') }}" class="progress-link">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            {% endif %}
         </div>
 
         <button class="theme-toggle" id="themeToggle">

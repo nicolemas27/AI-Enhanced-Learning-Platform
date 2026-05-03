@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, session, url_for, request, flash
-from flask_login import LoginManager, login_user, logout_user, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson import ObjectId
 from db import db
@@ -135,6 +135,42 @@ def logout():
     session.pop('api_key', None)
     session.pop('user_id', None)
     return redirect(url_for('index'))
+
+@auth_bp.route('/settings', methods=['GET'])
+@login_required
+def settings():
+    return render_template('settings.html')
+
+
+@auth_bp.route('/settings/update', methods=['POST'])
+@login_required
+def update_settings():
+    if request.form.get('remove_key'):
+        db.users.update_one(
+            {'_id': ObjectId(current_user.id)},
+            {'$set': {'encrypted_api_key': None}}
+        )
+        flash('API key removed. The app will use the shared quota.', 'success')
+        session.pop('api_key', None)
+        return redirect(url_for('auth.settings'))
+
+    new_key = request.form.get('api_key', '').strip()
+    if not new_key:
+        flash('No changes made — your current key is still active.', 'info')
+        return redirect(url_for('auth.settings'))
+
+    if not re.match(r'^AIzaSy[A-Za-z0-9_-]{33}$', new_key):
+        flash('Invalid key format. Gemini keys start with "AIzaSy" and are 39 characters long.', 'error')
+        return redirect(url_for('auth.settings'))
+
+    encrypted_key = cipher.encrypt(new_key.encode())
+    db.users.update_one(
+        {'_id': ObjectId(current_user.id)},
+        {'$set': {'encrypted_api_key': encrypted_key}}
+    )
+    session['api_key'] = new_key
+    flash('API key updated successfully.', 'success')
+    return redirect(url_for('auth.settings'))
 
 def init_login_manager(app):
     login_manager = LoginManager()
