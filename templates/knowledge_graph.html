@@ -4,7 +4,6 @@
     <title>Knowledge Navigator</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        /* Modern Full-Page Layout */
         body {
             margin: 0;
             height: 100vh;
@@ -13,358 +12,464 @@
             background: #f8f9fa;
             font-family: 'Segoe UI', system-ui;
         }
-        .node {  
-            cursor: pointer;
-            stroke-width: 1.5px;
-            transition: all 0.2s;
-        }
-        /* Definition Popup */
-        .definition-popup {
-            position: absolute;
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            display: none;
-            max-width: 300px;
-            z-index: 100;
-        }
 
         .toolbar {
-            padding: 1rem;
+            padding: 0.75rem 1rem;
             background: #ffffff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             align-items: center;
             flex-wrap: wrap;
         }
 
         #graph-container {
-            width: 100vw;  
-            height: 100%;  /* Full available height */
+            width: 100vw;
+            height: 100%;
             position: relative;
-            overflow: hidden;  
+            overflow: hidden;
         }
 
-        .concept-node {
-            fill: url(#concept-gradient);
-            stroke: #2c3e50;
-        }
+        /* ── nodes ── */
+        .node { cursor: pointer; stroke-width: 1.5px; }
+        .concept-node { fill: url(#concept-gradient); stroke: #2c3e50; }
+        .mind-node    { fill: url(#mind-gradient);    stroke: #219653; }
+        .root-node    { stroke-width: 3px; stroke: #e74c3c; }
 
-        .mind-node {
-            fill: url(#mind-gradient);
-            stroke: #219653;
-        }
-
+        /* ── labels ── */
         .node-label {
             font-size: 12px;
             fill: #2c3e50;
             font-weight: 600;
             pointer-events: none;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+            text-shadow: 0 1px 3px rgba(255,255,255,0.9);
         }
 
-        .link {
-            stroke: #7f8c8d;
-            stroke-opacity: 0.4;
-            stroke-width: 1.2px;
+        /* ── links ── */
+        .link-cooccurrence {
+            stroke: #4a90e2;
+            stroke-opacity: 0.55;
+        }
+        .link-semantic {
+            stroke: #e67e22;
+            stroke-opacity: 0.45;
+            stroke-dasharray: 5 3;   /* dashed = implicit/semantic link */
         }
 
+        /* ── legend ── */
+        .legend {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            font-size: 12px;
+            color: #555;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-line {
+            width: 28px; height: 3px; border-radius: 2px;
+        }
+        .legend-line.co  { background: #4a90e2; }
+        .legend-line.sem { background: #e67e22; border-top: 2px dashed #e67e22; height: 0; }
+
+        /* ── toolbar controls ── */
         .search-box {
-            flex: 1;
-            max-width: 400px;
-            padding: 0.6rem 1rem;
+            flex: 1; max-width: 360px;
+            padding: 0.5rem 0.9rem;
             border: 1px solid #dee2e6;
             border-radius: 8px;
             font-size: 14px;
         }
-
         .btn {
-            padding: 0.6rem 1.2rem;
-            background: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
+            padding: 0.5rem 1rem;
+            background: #4a90e2; color: white;
+            border: none; border-radius: 6px; cursor: pointer;
         }
-
-        .view-toggle {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
+        .view-toggle { display: flex; gap: 0.4rem; }
         .view-btn {
-            padding: 0.6rem 1.2rem;
+            padding: 0.5rem 1rem;
             border-radius: 20px;
             border: 1px solid #dee2e6;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s;
+            background: white; cursor: pointer;
+            font-size: 13px;
+        }
+        .view-btn.active {
+            background: #4a90e2; color: white; border-color: #357abd;
         }
 
-        .view-btn.active {
-            background: #4a90e2;
-            color: white;
-            border-color: #357abd;
+        /* ── definition popup ── */
+        #definition-popup {
+            position: absolute;
+            background: white;
+            padding: 0.9rem 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            display: none;
+            max-width: 280px;
+            z-index: 100;
+            pointer-events: none;
         }
+        #definition-popup .popup-term {
+            font-weight: 700; font-size: 14px; margin-bottom: 4px; color: #2c3e50;
+        }
+        #definition-popup .popup-def {
+            font-size: 12px; color: #555; line-height: 1.5; margin: 0;
+        }
+        #definition-popup .popup-badge {
+            display: inline-block;
+            font-size: 10px; padding: 1px 6px;
+            border-radius: 10px; margin-bottom: 5px;
+        }
+        #definition-popup .badge-co  { background: #dbeafe; color: #1d4ed8; }
+        #definition-popup .badge-sem { background: #fef3c7; color: #b45309; }
+
+        /* ── search highlight ── */
+        .node.search-match { filter: drop-shadow(0 0 6px #f39c12); }
+        .node.search-dim   { opacity: 0.12; }
+        .node-label.search-dim { opacity: 0.12; }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <div class="view-toggle">
-            <button class="view-btn active" onclick="changeView('concept')">Concept Map</button>
-            <button class="view-btn" onclick="changeView('mind')">Mind Map</button>
-        </div>
-        <input type="text" id="search" class="search-box" placeholder="Search concepts...">
-        <button onclick="resetView()" class="btn">Reset View</button>
+<div class="toolbar">
+    <div class="view-toggle">
+        <button class="view-btn active" onclick="changeView('concept')">Concept Map</button>
+        <button class="view-btn"        onclick="changeView('mind')">Mind Map</button>
     </div>
-    <div id="graph-container"></div>
-    <div id="definition-popup" class="definition-popup"></div>
+    <input type="text" id="search" class="search-box" placeholder="Search concepts (fuzzy)…">
+    <button onclick="resetView()" class="btn">Reset</button>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-line co"></div> Text connection
+        </div>
+        <div class="legend-item">
+            <div class="legend-line sem"></div> Similar concept
+        </div>
+    </div>
+</div>
+<div id="graph-container"></div>
+<div id="definition-popup">
+    <div class="popup-term" id="popup-term"></div>
+    <span class="popup-badge" id="popup-badge"></span>
+    <p class="popup-def" id="popup-def"></p>
+</div>
 
-    <script>
-        // Visualization Configurations
-        const layouts = {
-            concept: {
-                charge: -120,
-                distance: 180,
-                collide: 25,
-                force: () => d3.forceManyBody().strength(-120)
-            },
-            mind: {
-                charge: -60,
-                distance: d => 100 + (d.strength * 40),
-                collide: 40,
-                force: () => d3.forceRadial(
-                    d => 200 * (1 - d.importance), 
-                    width/2, 
-                    height/2
-                )
-            }
-        };
+<script>
+// ── state ──────────────────────────────────────────────────────────────────────
+let currentView = 'concept';
+let width, height, svg, g, simulation, zoomBehavior;
+let linkSel, nodeSel, labelSel;
+let graphData   = null;
+let rootNodeId  = null;   // highest-PageRank node — pinned in mind-map mode
 
-        // Global variables
-        let currentView = 'concept';
-        let width, height, svg, g, simulation;
-        const config = {
-            nodeRadius: 15,
-            fontSize: 13,
-            maxZoom: 8,
-            minZoom: 0.1
-        };
+// ── layout configs ─────────────────────────────────────────────────────────────
+const layouts = {
+    concept: { charge: -200, linkDistance: 160, collide: 32 },
+    mind:    { charge: -100, linkDistance: 130, collide: 42 }
+};
 
-        // Initialize visualization
-        function init() {
-            const container = d3.select("#graph-container");
-            width = container.node().offsetWidth;
-            height = container.node().offsetHeight;
+// ── init ───────────────────────────────────────────────────────────────────────
+function init() {
+    const container = d3.select("#graph-container");
+    width  = container.node().offsetWidth;
+    height = container.node().offsetHeight;
 
-            svg = container.append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .call(d3.zoom().on("zoom", zoomed));
+    zoomBehavior = d3.zoom()
+        .scaleExtent([0.1, 8])
+        .on("zoom", e => g.attr("transform", e.transform));
 
-            g = svg.append("g");
-            createGradients();
-            initializeGraph({{ graph_data|tojson }});
-        }
+    svg = container.append("svg")
+        .attr("width",  width)
+        .attr("height", height)
+        .call(zoomBehavior);
 
-        function showDefinition(event, d) {
-            const popup = d3.select("#definition-popup");
-            popup.style("left", `${event.pageX + 15}px`)
-                 .style("top", `${event.pageY + 15}px`)
-                 .style("display", "block")
-                 .html(`<h3>${d.id}</h3>${d.definition}`);
-        }
+    // Arrow marker for semantic links (optional visual cue)
+    svg.append("defs").append("marker")
+        .attr("id", "arrow").attr("viewBox", "0 -4 8 8")
+        .attr("refX", 14).attr("refY", 0)
+        .attr("markerWidth", 5).attr("markerHeight", 5)
+        .attr("orient", "auto")
+        .append("path").attr("d", "M0,-4L8,0L0,4").attr("fill", "#e67e22").attr("opacity", 0.5);
 
-        function createGradients() {
-            const gradients = [
-                { id: 'concept-gradient', colors: ['#4a90e2', '#357abd'] },
-                { id: 'mind-gradient', colors: ['#27ae60', '#219653'] }
-            ];
+    g = svg.append("g");
+    createGradients();
 
-            gradients.forEach(({id, colors}) => {
-                const gradient = svg.append("defs").append("radialGradient")
-                    .attr("id", id)
-                    .attr("cx", "40%")
-                    .attr("cy", "40%")
-                    .attr("r", "70%");
-                gradient.append("stop").attr("offset", "0%").attr("stop-color", colors[0]);
-                gradient.append("stop").attr("offset", "100%").attr("stop-color", colors[1]);
+    // Simulation must exist before nodes so drag() references a live object
+    simulation = d3.forceSimulation();
+    initializeGraph({{ graph_data|tojson }});
+}
+
+// ── gradients ─────────────────────────────────────────────────────────────────
+function createGradients() {
+    [
+        { id: 'concept-gradient', colors: ['#4a90e2', '#357abd'] },
+        { id: 'mind-gradient',    colors: ['#27ae60', '#219653'] },
+    ].forEach(({ id, colors }) => {
+        const grad = svg.append("defs").append("radialGradient")
+            .attr("id", id).attr("cx", "40%").attr("cy", "40%").attr("r", "70%");
+        grad.append("stop").attr("offset",   "0%").attr("stop-color", colors[0]);
+        grad.append("stop").attr("offset", "100%").attr("stop-color", colors[1]);
+    });
+}
+
+// ── graph init ────────────────────────────────────────────────────────────────
+function initializeGraph(data) {
+    graphData  = data;
+    rootNodeId = data.nodes.reduce(
+        (best, n) => n.importance > best.importance ? n : best,
+        data.nodes[0]
+    ).id;
+
+    // Links — colour and style by type
+    linkSel = g.append("g")
+        .selectAll("line")
+        .data(data.links)
+        .enter().append("line")
+        .attr("class", d => `link-${d.type || 'cooccurrence'}`)
+        .attr("stroke-width", d =>
+            d.type === 'semantic'
+                ? 1 + (d.strength * 1.5)
+                : Math.max(1, Math.sqrt(d.strength || 1))
+        );
+
+    // Nodes
+    nodeSel = g.append("g")
+        .selectAll("circle")
+        .data(data.nodes)
+        .enter().append("circle")
+        .attr("class", d =>
+            `node ${currentView}-node${d.id === rootNodeId ? ' root-node' : ''}`)
+        .attr("r", d => 10 + (d.importance * 25))
+        .on("mouseover", nodeMouseOver)
+        .on("mouseout",  nodeMouseOut)
+        .on("click",     showDefinition)
+        .call(drag());
+
+    // Labels
+    labelSel = g.append("g")
+        .selectAll("text")
+        .data(data.nodes)
+        .enter().append("text")
+        .attr("class", "node-label")
+        .text(d => d.id)
+        .attr("dx", d => 12 + (d.importance * 10))
+        .attr("dy", "0.35em");
+
+    applyForces(currentView);
+}
+
+// ── force application ─────────────────────────────────────────────────────────
+function applyForces(viewType) {
+    const cfg = layouts[viewType];
+    simulation.stop();
+    simulation.nodes(graphData.nodes).on("tick", ticked);
+
+    // Release any previously pinned root node
+    graphData.nodes.forEach(n => { n.fx = null; n.fy = null; });
+
+    if (viewType === 'concept') {
+        simulation
+            .force("link",   d3.forceLink(graphData.links).id(d => d.id).distance(cfg.linkDistance))
+            .force("charge", d3.forceManyBody().strength(cfg.charge))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collide",d3.forceCollide(cfg.collide))
+            .force("radial", null);
+
+    } else {
+        // Mind map: root pinned to centre, other nodes radiate by BFS depth
+        const root = graphData.nodes.find(n => n.id === rootNodeId);
+        if (root) { root.fx = width / 2; root.fy = height / 2; }
+
+        const visited = new Set([rootNodeId]);
+        const depth   = { [rootNodeId]: 0 };
+        const queue   = [rootNodeId];
+
+        while (queue.length) {
+            const cur = queue.shift();
+            graphData.links.forEach(l => {
+                const srcId = l.source.id ?? l.source;
+                const tgtId = l.target.id ?? l.target;
+                const nbr   = srcId === cur ? tgtId : tgtId === cur ? srcId : null;
+                if (nbr && !visited.has(nbr)) {
+                    visited.add(nbr);
+                    depth[nbr] = depth[cur] + 1;
+                    queue.push(nbr);
+                }
             });
         }
 
-        function initializeGraph(data) {
-            // Create links
-            const link = g.append("g")
-                .selectAll(".link")
-                .data(data.links)
-                .enter().append("line")
-                .attr("class", "link")
-                .attr("stroke-width", d => Math.sqrt(d.strength));
+        const maxDepth = Math.max(...Object.values(depth), 1);
+        const radius   = Math.min(width, height) * 0.42;
 
-            // Create nodes
-            const node = g.append("g")
-                .selectAll(".node")
-                .data(data.nodes)
-                .enter().append("circle")
-                .attr("class", `node ${currentView}-node`) 
-                .attr("r", d => 10 + (d.importance * 25))
-                .call(drag(simulation))
-                .on("mouseover", nodeMouseOver)
-                .on("mouseout", nodeMouseOut)
-                .on("click", showDefinition);
+        simulation
+            .force("link",   d3.forceLink(graphData.links).id(d => d.id).distance(cfg.linkDistance))
+            .force("charge", d3.forceManyBody().strength(cfg.charge))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collide",d3.forceCollide(cfg.collide))
+            .force("radial", d3.forceRadial(
+                d => d.id === rootNodeId ? 0 : ((depth[d.id] ?? maxDepth) / maxDepth) * radius,
+                width / 2, height / 2
+            ).strength(0.85));
+    }
 
-            // Create labels
-            const label = g.append("g")
-                .selectAll(".node-label")
-                .data(data.nodes)
-                .enter().append("text")
-                .attr("class", "node-label")
-                .text(d => d.id)
-                .attr("dx", 20)
-                .attr("dy", "0.35em");
+    simulation.alpha(1).restart();
+}
 
-            // Initialize simulation
-            simulation = d3.forceSimulation()
-                .force("link", d3.forceLink()
-                    .id(d => d.id)
-                    .distance(layouts[currentView].distance)
-                )
-                .force("charge", layouts[currentView].force())
-                .force("center", d3.forceCenter(width/2, height/2))
-                .force("collide", d3.forceCollide(layouts[currentView].collide));
+// ── tick ──────────────────────────────────────────────────────────────────────
+function ticked() {
+    linkSel
+        .attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+    nodeSel .attr("cx", d => d.x).attr("cy", d => d.y);
+    labelSel.attr("x",  d => d.x).attr("y",  d => d.y);
+}
 
-            simulation.nodes(data.nodes)
-                .on("tick", () => ticked(link, node, label));
+// ── view switch ───────────────────────────────────────────────────────────────
+function changeView(viewType) {
+    currentView = viewType;
+    d3.selectAll(".view-btn").classed("active", false);
+    d3.select(`button[onclick="changeView('${viewType}')"]`).classed("active", true);
+    nodeSel.attr("class", d =>
+        `node ${viewType}-node${d.id === rootNodeId ? ' root-node' : ''}`);
+    applyForces(viewType);
+}
 
-            simulation.force("link").links(data.links);
-
-            // Initial layout stabilization
-            setTimeout(() => simulation.alphaTarget(0).restart(), 3000);
-        }
-
-        function ticked(link, node, label) {
-            link.attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
-
-            node.attr("cx", d => d.x)
-                .attr("cy", d => d.y);
-
-            label.attr("x", d => d.x)
-                .attr("y", d => d.y);
-        }
-
-        function changeView(viewType) {
-            currentView = viewType;
-            
-            // Update button states
-            d3.selectAll(".view-btn")
-                .classed("active", false);
-            d3.select(`button[onclick="changeView('${viewType}')"]`)
-                .classed("active", true);
-
-            // Update node styles
-            g.selectAll(".node")
-                .attr("class", `node ${viewType}-node`);
-
-            // Update simulation forces
-            simulation.force("charge", layouts[viewType].force())
-                .force("link", d3.forceLink()
-                    .distance(layouts[viewType].distance)
-                )
-                .force("collide", d3.forceCollide(layouts[viewType].collide))
-                .alpha(1).restart();
-        }
-
-        // Interaction functions
-        function drag(simulation) {
-            function dragstarted(event) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                event.subject.fx = event.subject.x;
-                event.subject.fy = event.subject.y;
-            }
-
-            function dragged(event) {
-                event.subject.fx = event.x;
-                event.subject.fy = event.y;
-            }
-
-            function dragended(event) {
-                if (!event.active) simulation.alphaTarget(0);
-                event.subject.fx = null;
-                event.subject.fy = null;
-            }
-
-            return d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended);
-        }
-
-        function nodeMouseOver(event, d) {
-            d3.select(event.currentTarget)
-                .transition()
-                .duration(200)
-                .attr("r", config.nodeRadius * 1.4);
-        }
-
-        function nodeMouseOut(event, d) {
-            d3.select(event.currentTarget)
-                .transition()
-                .duration(200)
-                .attr("r", 10 + (d.importance * 25));
-        }
-
-        function zoomed(event) {
-            g.attr("transform", event.transform);
-        }
-
-        function resetView() {
-            g.transition()
-                .duration(750)
-                .attr("transform", d3.zoomIdentity);
-            
-            simulation.alpha(1).restart();
-            simulation.force("center", d3.forceCenter(width/2, height/2));
-        }
-
-        // Window resize handler
-        window.addEventListener("resize", () => {
-            const container = d3.select("#graph-container");
-            width = container.node().offsetWidth;
-            height = container.node().offsetHeight;
-            
-            svg.attr("width", width)
-               .attr("height", height);
-            
-            simulation.force("center", d3.forceCenter(width/2, height/2));
-            simulation.alpha(1).restart();
-        });
-
-        // Search functionality
-        document.getElementById("search").addEventListener("input", function(e) {
-            const term = e.target.value.toLowerCase();
-            g.selectAll(".node, .node-label")
-                .style("opacity", d => d.id.toLowerCase().includes(term) ? 1 : 0.1);
-        });
-
-        document.addEventListener("click", (e) => {
-            const clickedNode = e.target.closest('.node');  // Now using .node class
-            const clickedPopup = e.target.closest('#definition-popup');
-            
-            if (!clickedNode && !clickedPopup) {
-                d3.select("#definition-popup").style("display", "none");
+// ── drag ──────────────────────────────────────────────────────────────────────
+function drag() {
+    return d3.drag()
+        .on("start", e => {
+            if (!e.active) simulation.alphaTarget(0.3).restart();
+            e.subject.fx = e.subject.x;
+            e.subject.fy = e.subject.y;
+        })
+        .on("drag",  e => { e.subject.fx = e.x; e.subject.fy = e.y; })
+        .on("end",   e => {
+            if (!e.active) simulation.alphaTarget(0);
+            // In mind-map mode keep root pinned; release everything else
+            if (currentView !== 'mind' || e.subject.id !== rootNodeId) {
+                e.subject.fx = null;
+                e.subject.fy = null;
             }
         });
+}
 
-        // Initialize application
-        init();
-    </script>
-    
+// ── hover — highlight connected nodes ─────────────────────────────────────────
+function nodeMouseOver(event, d) {
+    const connected = new Set([d.id]);
+    graphData.links.forEach(l => {
+        const s = l.source.id ?? l.source;
+        const t = l.target.id ?? l.target;
+        if (s === d.id) connected.add(t);
+        if (t === d.id) connected.add(s);
+    });
+
+    nodeSel.style("opacity",  n => connected.has(n.id) ? 1 : 0.15);
+    labelSel.style("opacity", n => connected.has(n.id) ? 1 : 0.15);
+    linkSel.style("opacity",  l => {
+        const s = l.source.id ?? l.source;
+        const t = l.target.id ?? l.target;
+        return (s === d.id || t === d.id) ? 1 : 0.05;
+    });
+
+    d3.select(event.currentTarget)
+        .transition().duration(150)
+        .attr("r", 10 + (d.importance * 25) + 7);
+}
+
+function nodeMouseOut(event, d) {
+    nodeSel .style("opacity", null);
+    labelSel.style("opacity", null);
+    linkSel .style("opacity", null);
+    d3.select(event.currentTarget)
+        .transition().duration(150)
+        .attr("r", 10 + (d.importance * 25));
+}
+
+// ── definition popup ──────────────────────────────────────────────────────────
+function showDefinition(event, d) {
+    const connections = graphData.links.filter(l => {
+        const s = l.source.id ?? l.source;
+        const t = l.target.id ?? l.target;
+        return s === d.id || t === d.id;
+    });
+    const semCount = connections.filter(l => l.type === 'semantic').length;
+    const coCount  = connections.filter(l => l.type === 'cooccurrence').length;
+
+    document.getElementById("popup-term").textContent = d.id;
+    document.getElementById("popup-def").textContent  = d.definition || "Core concept in this context";
+
+    const badge = document.getElementById("popup-badge");
+    badge.textContent = `${coCount} text link${coCount !== 1 ? 's' : ''}, ${semCount} similar concept${semCount !== 1 ? 's' : ''}`;
+    badge.className   = `popup-badge ${semCount > coCount ? 'badge-sem' : 'badge-co'}`;
+
+    const popup = document.getElementById("definition-popup");
+    popup.style.left    = `${event.pageX + 16}px`;
+    popup.style.top     = `${event.pageY + 16}px`;
+    popup.style.display = "block";
+    event.stopPropagation();
+}
+
+document.addEventListener("click", () => {
+    document.getElementById("definition-popup").style.display = "none";
+});
+
+// ── fuzzy search ──────────────────────────────────────────────────────────────
+//
+// Three-tier matching (in order of strictness):
+//   1. Substring  — "lear" matches "learning"
+//   2. Word-start — "lea"  matches "adaptive learning" (the word 'learning')
+//   3. Subsequence — characters appear in order, allows gaps ("lrng" → "learning")
+//      This is the 'fuzzy' tier that tolerates typos and abbreviations.
+//
+function fuzzyMatch(concept, term) {
+    if (!term) return true;
+    const c = concept.toLowerCase();
+    const t = term.toLowerCase();
+    if (c.includes(t)) return true;                    // tier 1: substring
+    if (c.split(" ").some(w => w.startsWith(t))) return true;  // tier 2: word-start
+    // tier 3: subsequence
+    let ci = 0;
+    for (let i = 0; i < t.length; i++) {
+        ci = c.indexOf(t[i], ci);
+        if (ci === -1) return false;
+        ci++;
+    }
+    return true;
+}
+
+document.getElementById("search").addEventListener("input", function (e) {
+    const term = e.target.value.trim();
+
+    if (!term) {
+        nodeSel .classed("search-match", false).classed("search-dim", false);
+        labelSel.classed("search-dim", false);
+        return;
+    }
+
+    nodeSel
+        .classed("search-match", d =>  fuzzyMatch(d.id, term))
+        .classed("search-dim",   d => !fuzzyMatch(d.id, term));
+    labelSel
+        .classed("search-dim",   d => !fuzzyMatch(d.id, term));
+});
+
+// ── reset ─────────────────────────────────────────────────────────────────────
+function resetView() {
+    svg.transition().duration(750).call(zoomBehavior.transform, d3.zoomIdentity);
+    document.getElementById("search").value = "";
+    nodeSel .classed("search-match", false).classed("search-dim", false);
+    labelSel.classed("search-dim", false);
+    simulation.alpha(1).restart();
+}
+
+// ── resize ────────────────────────────────────────────────────────────────────
+window.addEventListener("resize", () => {
+    width  = document.getElementById("graph-container").offsetWidth;
+    height = document.getElementById("graph-container").offsetHeight;
+    svg.attr("width", width).attr("height", height);
+    simulation.force("center", d3.forceCenter(width / 2, height / 2)).alpha(1).restart();
+});
+
+// ── start ─────────────────────────────────────────────────────────────────────
+init();
+</script>
 </body>
 </html>

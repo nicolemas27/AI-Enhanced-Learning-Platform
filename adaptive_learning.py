@@ -655,6 +655,7 @@ class ABTestManager:
                 "group":     "$_id",
                 "avg_score": 1,
                 "count":     1,
+                "scores":    1, 
                 "variance":  {"$stdDevPop": "$scores"},
                 "_id":       0
             }}
