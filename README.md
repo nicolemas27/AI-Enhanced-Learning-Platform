@@ -6,6 +6,7 @@
 
 Converts any YouTube video into a personalised study session — quizzes, summaries, flashcards, and concept maps — with three ML models tracking what you know, predicting when you'll forget it, and adapting every question to your current ability.
 
+![Home Screen](docs/screenshots/learntube.png)
 ---
 
 ## How It Works
@@ -18,21 +19,41 @@ Paste a YouTube URL → the platform fetches the transcript, extracts key concep
 
 **Spaced Repetition with model comparison** — Three forgetting-curve models (Ebbinghaus, ACT-R, and a personalised BayesianRidge trained on user history) compete to predict the optimal review date. The admin dashboard shows each model's MAE and RMSE on held-out quiz data.
 
+![Memory Model Comparison](docs/screenshots/model_comparison.png)
+
 **A/B Testing** — Experiments comparing teaching strategies use power analysis before launch, Holm–Bonferroni correction for multiple comparisons, O'Brien–Fleming alpha spending for interim looks, and Cohen's d for effect size reporting.
+
+![A/B Experiment Results](docs/screenshots/adaptive_quiz_study.png)
 
 ---
 
 ## Features
 
 - Adaptive quiz engine — difficulty adjusted per-user using z-score performance history
+
+![Adaptive Quiz UI](docs/screenshots/quiz.png)
+
 - Flashcards, structured summaries, and D3.js knowledge graph
+
+| Flashcards | Structured Summaries |
+| :--- | :--- |
+| ![Flashcards](docs/screenshots/flashcards.png) | ![Summary](docs/screenshots/summary.png) |
+
+![Concept Map](docs/screenshots/concept_map.png)
+
 - Spaced repetition review scheduler with three competing memory models
+
+![Retention Trial Results](docs/screenshots/spaced_repetition_trial.png)
+
 - Weak concept identification and personalised review prioritisation
 - Admin research dashboard: A/B results, IRT ability distribution, model comparison
 - Chrome Extension for in-browser quizzing while watching YouTube
 - Anonymous → authenticated session migration (progress preserved on signup)
 - Multilingual content translation
 
+| User Learning Dashboard | Admin Usage Analytics |
+| :--- | :--- |
+| ![Learning Dashboard](docs/screenshots/dashboard.png) | ![Admin Stats](docs/screenshots/user_count.png) |
 ---
 
 ## Tech Stack
